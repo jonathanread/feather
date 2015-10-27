@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Web;
 using Telerik.Sitefinity.Clients.JS;
+using Telerik.Sitefinity.Configuration;
 using Telerik.Sitefinity.Modules.Pages;
 using Telerik.Sitefinity.Mvc.Rendering;
 using Telerik.Sitefinity.Pages.Model;
@@ -18,7 +19,7 @@ namespace Telerik.Sitefinity.Frontend.Mvc.Infrastructure.Layouts
     /// <summary>
     /// This class is appends all additional data to the html of the layout template. This required header elements, scripts, stylesheets, form tags, etc.
     /// </summary>
-    public class MasterPageBuilder
+    internal class MasterPageBuilder
     {
         #region Public methods
 
@@ -26,15 +27,15 @@ namespace Telerik.Sitefinity.Frontend.Mvc.Infrastructure.Layouts
         /// Processes the layout string adding the required attributes to the head tag
         /// and also adding the required form tag.
         /// </summary>
-        /// <param name="template">The template.</param>
+        /// <param name="targetTemplate">The template.</param>
         /// <returns></returns>
-        public virtual string ProcessLayoutString(string template)
+        public virtual string ProcessLayoutString(string targetTemplate)
         {
-            var includeFormTag = this.IsFormTagRequired();
+            var includeFormTag = MasterPageBuilder.IsFormTagRequired();
             StringBuilder outPut = new StringBuilder();
             HtmlChunk chunk = null;
 
-            using (HtmlParser parser = new HtmlParser(template))
+            using (HtmlParser parser = new HtmlParser(targetTemplate))
             {
                 parser.SetChunkHashMode(false);
                 parser.AutoExtractBetweenTagsOnly = false;
@@ -67,7 +68,6 @@ namespace Telerik.Sitefinity.Frontend.Mvc.Infrastructure.Layouts
                             isOpenBodyTag = true;
                         else if (chunk.TagName.Equals("title", StringComparison.OrdinalIgnoreCase))
                             setTitle = false;
-
                     }
                     else if (chunk.Type == HtmlChunkType.CloseTag)
                     {
@@ -99,13 +99,13 @@ namespace Telerik.Sitefinity.Frontend.Mvc.Infrastructure.Layouts
         /// <summary>
         /// Adds the master page directives.
         /// </summary>
-        /// <param name="layoutHtmlString">The layout HTML string.</param>
+        /// <param name="layoutHtmlValue">The layout HTML string.</param>
         /// <returns></returns>
-        public virtual string AddMasterPageDirectives(string layoutHtmlString)
+        public virtual string AddMasterPageDirectives(string layoutHtmlValue)
         {
-            layoutHtmlString = string.Format("{0}{1}", MasterPageBuilder.masterPageDirective, layoutHtmlString);
+            layoutHtmlValue = string.Format(System.Globalization.CultureInfo.InvariantCulture, "{0}{1}", MasterPageBuilder.MasterPageDirective, layoutHtmlValue);
 
-            return layoutHtmlString;
+            return layoutHtmlValue;
         }
 
         #endregion 
@@ -116,7 +116,7 @@ namespace Telerik.Sitefinity.Frontend.Mvc.Infrastructure.Layouts
         /// Determines whether the form tag is required.
         /// </summary>
         /// <returns></returns>
-        protected virtual bool IsFormTagRequired()
+        internal static bool IsFormTagRequired()
         {
             bool insertFormTag = true;
             var isBackendRequest = true;
@@ -141,23 +141,45 @@ namespace Telerik.Sitefinity.Frontend.Mvc.Infrastructure.Layouts
         /// </summary>
         /// <returns></returns>
         /// <exception cref="System.InvalidOperationException">Invalid SiteMap node specified. Either the current group node doesn't have child nodes or the current user does not have rights to view any of the child nodes.</exception>
-        protected virtual PageData GetRequestedPageData()
+        internal static PageData GetRequestedPageData()
         {
-            var node = this.GetRequestedPageNode();
+            var node = MasterPageBuilder.GetRequestedPageNode();
 
-            if (node == null)
-                throw new InvalidOperationException("Invalid SiteMap node specified. Either the current group node doesn't have child nodes or the current user does not have rights to view any of the child nodes.");
+            if (node != null)
+            {
+                var siteMap = (SiteMapBase)node.Provider;
+                var pageManager = PageManager.GetManager(siteMap.PageProviderName);
+                var pageData = pageManager.GetPageData(node.PageId);
 
-            var siteMap = (SiteMapBase)node.Provider;
-            var pageManager = PageManager.GetManager(siteMap.PageProviderName);
-            var pageData = pageManager.GetPageData(node.PageId);
-
-            return pageData;
+                return pageData;
+            }
+            else
+            {
+                return null;
+            }
         }
 
         #endregion
 
         #region Private methods
+
+        /// <summary>
+        /// Gets the requested page node.
+        /// </summary>
+        /// <param name="requestContext">The request context.</param>
+        /// <returns></returns>
+        /// <exception cref="System.ArgumentException">This resolver hasn’t been invoked with the proper route handler.</exception>
+        private static PageSiteNode GetRequestedPageNode()
+        {
+            var httpContext = SystemManager.CurrentHttpContext;
+            var requestContext = httpContext.Request.RequestContext;
+            var node = requestContext.RouteData.DataTokens["SiteMapNode"] as PageSiteNode;
+
+            if (node != null)
+                return RouteHelper.GetFirstPageDataNode(node, true);
+            else
+                return null;
+        }
 
         /// <summary>
         /// Appends the content of the required header.
@@ -166,25 +188,19 @@ namespace Telerik.Sitefinity.Frontend.Mvc.Infrastructure.Layouts
         /// <exception cref="System.InvalidOperationException">Invalid SiteMap node specified. Either the current group node doesn't have child nodes or the current user does not have rights to view any of the child nodes.</exception>
         private void AppendRequiredHeaderContent(StringBuilder stringBuilder, bool setTitle = true)
         {
-            var pageData = this.GetRequestedPageData();
-            stringBuilder.Append(this.ResourceRegistrations());
-            var robotsTag = this.GetRobotsMetaTag(pageData);
+            var pageData = MasterPageBuilder.GetRequestedPageData();
 
-            if (!string.IsNullOrEmpty(robotsTag))
-                stringBuilder.Append("\r\n\t" + robotsTag);
+            if (pageData != null)
+            {
+                stringBuilder.Append(this.ResourceRegistrations());
+                var robotsTag = this.GetRobotsMetaTag(pageData);
 
-            if (setTitle)
-                stringBuilder.Append("\r\n\t<title>" + pageData.HtmlTitle.ToString() + "\r\n\t</title>");
+                if (!string.IsNullOrEmpty(robotsTag))
+                    stringBuilder.Append("\r\n\t" + robotsTag);
 
-            var descriptionTag = this.GetDescriptionTag(pageData);
-
-            if (!string.IsNullOrEmpty(descriptionTag))
-                stringBuilder.Append("\r\n\t" + descriptionTag);
-
-            var keywordsTag = this.GetKeywordsTag(pageData);
-
-            if (!string.IsNullOrEmpty(keywordsTag))
-                stringBuilder.Append("\r\n\t" + keywordsTag);
+                if (setTitle)
+                    stringBuilder.Append("\r\n\t<title>" + pageData.HtmlTitle.ToString() + "\r\n\t</title>");
+            }
         }
 
         /// <summary>
@@ -204,39 +220,7 @@ namespace Telerik.Sitefinity.Frontend.Mvc.Infrastructure.Layouts
             if (pageData.NavigationNode.Crawlable)
                 return null;
 
-            return MasterPageBuilder.robotsMetaTag;
-        }
-
-        /// <summary>
-        /// Generates the page keywords meta tag from page data
-        /// </summary>
-        /// <param name="pageData">The information about the page</param>
-        /// <returns>Keywords meta tag if page has set keywords, otherwise null</returns>
-        private string GetKeywordsTag(PageData pageData)
-        {
-            if (pageData == null)
-                throw new ArgumentNullException("pageData");
-
-            if (string.IsNullOrEmpty(pageData.Keywords))
-                return null;
-
-            return string.Format(MasterPageBuilder.keywordsMetaTag, pageData.Keywords);
-        }
-
-        /// <summary>
-        /// Generates the page description meta tag from page data
-        /// </summary>
-        /// <param name="pageData">The information about the page.</param>
-        /// <returns>Description meta tag if page has set description, otherwise null</returns>
-        private string GetDescriptionTag(PageData pageData)
-        {
-            if (pageData == null)
-                throw new ArgumentNullException("pageData");
-
-            if (string.IsNullOrEmpty(pageData.Description))
-                return null;
-
-            return string.Format(MasterPageBuilder.pageDescriptionMetaTag, pageData.Description);
+            return MasterPageBuilder.RobotsMetaTag;
         }
 
         /// <summary>
@@ -245,71 +229,24 @@ namespace Telerik.Sitefinity.Frontend.Mvc.Infrastructure.Layouts
         /// <returns></returns>
         private string ResourceRegistrations()
         {
-            var pageProxy = new PageProxy(string.Empty);
-            
             StringBuilder sb = new StringBuilder();
 
             string appPath = System.Web.Hosting.HostingEnvironment.ApplicationVirtualPath;
 
-            if (!appPath.EndsWith("/"))
+            if (!appPath.EndsWith("/", StringComparison.Ordinal))
                 appPath = string.Concat(appPath, "/");
 
-            sb.Append(String.Concat("\t<script type=\"text/javascript\">var sf_appPath='", appPath, "';</script>"));
-
-            // add the scripts for personalization in the page
-            sb.Append("\t<script src=\"");
-            sb.Append(pageProxy.ClientScript.GetWebResourceUrl(typeof(PageStatisticsJSClient), "Telerik.Sitefinity.Clients.JS.StatsClient.min.js"));
-            sb.Append("\" type=\"text/javascript\"></script>");
+            sb.Append(string.Concat("\t<script type=\"text/javascript\">var sf_appPath='", HttpUtility.HtmlEncode(appPath), "';</script>"));
 
             return sb.ToString();
-        }
-
-        /// <summary>
-        /// Appends the CSS resource tag.
-        /// </summary>
-        /// <param name="pageProxy">The page proxy.</param>
-        /// <param name="sb">The sb.</param>
-        /// <param name="resourceAssemblyInfo">The resource assembly information.</param>
-        /// <param name="resourceName">Name of the resource.</param>
-        private void AppendStylesheetResourceTag(PageProxy pageProxy, ref StringBuilder sb, string resourceAssemblyInfo, string resourceName)
-        {
-            sb.AppendLine();
-            sb.Append("\t<link rel=\"stylesheet\" href=\"");
-
-            if (resourceName.StartsWith("~/"))
-                sb.Append(VirtualPathUtility.ToAbsolute(resourceName));
-            else
-                sb.Append(pageProxy.ClientScript.GetWebResourceUrl(TypeResolutionService.ResolveType(resourceAssemblyInfo), resourceName));
-
-            sb.Append("\" type=\"text/css\" />");
-        }
-
-        /// <summary>
-        /// Gets the requested page node.
-        /// </summary>
-        /// <param name="requestContext">The request context.</param>
-        /// <returns></returns>
-        /// <exception cref="System.ArgumentException">This resolver hasn’t been invoked with the proper route handler.</exception>
-        private PageSiteNode GetRequestedPageNode()
-        {
-            var httpContext = SystemManager.CurrentHttpContext;
-            var requestContext = httpContext.Request.RequestContext;
-            var node = (PageSiteNode)requestContext.RouteData.DataTokens["SiteMapNode"];
-
-            if (node == null)
-                throw new ArgumentException("This resolver hasn’t been invoked with the proper route handler.");
-
-            return RouteHelper.GetFirstPageDataNode(node, true);
         }
 
         #endregion
 
         #region Constants
 
-        private const string masterPageDirective = "<%@ Master Language=\"C#\" AutoEventWireup=\"true\" %>\r\n \r\n";
-        private const string pageDescriptionMetaTag = "<meta name=\"description\" content=\"{0}\" />";
-        private const string robotsMetaTag = "<meta name=\"robots\" content=\"noindex\" />";
-        private const string keywordsMetaTag = "<meta name=\"keywords\" content=\"{0}\" />"; 
+        private const string MasterPageDirective = "<%@ Master Language=\"C#\" AutoEventWireup=\"true\" %>\r\n \r\n";
+        private const string RobotsMetaTag = "<meta name=\"robots\" content=\"noindex\" />";
 
         #endregion
     }

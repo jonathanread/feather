@@ -1,7 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using Telerik.Sitefinity.Data;
 using Telerik.Sitefinity.Data.OA;
 
@@ -10,7 +8,7 @@ namespace Telerik.Sitefinity.Frontend.FilesMonitoring.Data
     /// <summary>
     /// OpenAccess implementation of the <see cref="FileMonitorDataProvider"/>.
     /// </summary>
-    public class OpenAccessFileMonitorDataProvider : FileMonitorDataProvider, IOpenAccessDataProvider, IOpenAccessUpgradableProvider
+    internal class OpenAccessFileMonitorDataProvider : FileMonitorDataProvider, IOpenAccessDataProvider, IOpenAccessUpgradableProvider
     {
         #region Upgrade
 
@@ -87,6 +85,5 @@ namespace Telerik.Sitefinity.Frontend.FilesMonitoring.Data
         }
 
         #endregion
-
     }
 }

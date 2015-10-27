@@ -1,19 +1,10 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Web.Mvc;
-using Telerik.Sitefinity.Abstractions;
-using Telerik.Sitefinity.Frontend.Mvc.Infrastructure.Controllers.Attributes;
-using Telerik.Sitefinity.Localization;
 using Telerik.Sitefinity.Mvc;
-using Telerik.Microsoft.Practices.Unity;
-using Telerik.Sitefinity.Configuration;
-using Telerik.Sitefinity.Mvc.Store;
 
 namespace Telerik.Sitefinity.Frontend.Mvc.Infrastructure.Controllers
 {
-    public static class SitefinityControllerFactroryExtensions
+    public static class SitefinityControllerFactoryExtensions
     {
         /// <summary>
         /// Determines whether the given type represents an MVC controller.
@@ -23,15 +14,13 @@ namespace Telerik.Sitefinity.Frontend.Mvc.Infrastructure.Controllers
         {
             if (type == null
                 || !type.IsPublic
-                || !type.Name.EndsWith(SitefinityControllerFactroryExtensions.controllerSuffix, StringComparison.OrdinalIgnoreCase)
+                || !type.Name.EndsWith(SitefinityControllerFactoryExtensions.ControllerSuffix, StringComparison.Ordinal)
                 || type.IsAbstract)
             {
                 return false;
             }
-            else
-            {
-                return typeof(IController).IsAssignableFrom(type);
-            }
+
+            return typeof(IController).IsAssignableFrom(type);
         }
 
         /// <summary>
@@ -41,6 +30,7 @@ namespace Telerik.Sitefinity.Frontend.Mvc.Infrastructure.Controllers
         /// <returns>
         /// The name of the controller. If present, "Controller" suffix will be removed.
         /// </returns>
+        /// <exception cref="System.ArgumentNullException">controllerType</exception>
         public static string GetControllerName(this ISitefinityControllerFactory factory, Type controllerType)
         {
             if (controllerType == null)
@@ -48,15 +38,15 @@ namespace Telerik.Sitefinity.Frontend.Mvc.Infrastructure.Controllers
 
             var controllerName = controllerType.Name;
 
-            if (controllerName.EndsWith(SitefinityControllerFactroryExtensions.controllerSuffix, StringComparison.OrdinalIgnoreCase))
-                controllerName = controllerName.Substring(0, controllerName.Length - SitefinityControllerFactroryExtensions.controllerSuffix.Length);
+            if (controllerName.EndsWith(SitefinityControllerFactoryExtensions.ControllerSuffix, StringComparison.Ordinal))
+                controllerName = controllerName.Substring(0, controllerName.Length - SitefinityControllerFactoryExtensions.ControllerSuffix.Length);
 
             return controllerName;
         }
-        
+
         /// <summary>
         /// Constant containing the suffix in the type name that is expected in Controller types.
         /// </summary>
-        private const string controllerSuffix = "Controller";
+        private const string ControllerSuffix = "Controller";
     }
 }

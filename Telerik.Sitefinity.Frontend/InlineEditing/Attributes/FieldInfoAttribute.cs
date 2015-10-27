@@ -5,6 +5,7 @@ namespace Telerik.Sitefinity.Frontend.InlineEditing.Attributes
     /// <summary>
     /// This class is used as attribute which specifies the meta data required to enable inlineEditing for the field
     /// </summary>
+    [AttributeUsage(AttributeTargets.All)]
     public class FieldInfoAttribute : Attribute
     {
         /// <summary>
@@ -13,7 +14,7 @@ namespace Telerik.Sitefinity.Frontend.InlineEditing.Attributes
         /// <value>
         /// The name.
         /// </value>
-        public string Name { set; get; }
+        public string Name { get; set; }
        
         /// <summary>
         /// Gets or sets the type.
@@ -21,7 +22,7 @@ namespace Telerik.Sitefinity.Frontend.InlineEditing.Attributes
         /// <value>
         /// The type.
         /// </value>
-        public string Type { set; get; }
+        public string FieldType { get; set; }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="FieldInfoAttribute"/> class.
@@ -39,7 +40,7 @@ namespace Telerik.Sitefinity.Frontend.InlineEditing.Attributes
         /// <param name="type">The type.</param>
          public FieldInfoAttribute(string name, string type)
         {
-            this.Type = type;
+            this.FieldType = type;
             this.Name = name;
         }
     }

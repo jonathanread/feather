@@ -1,22 +1,71 @@
-﻿/* global $telerik, document, kendo */
+/* global $telerik, document, kendo */
 
-var sf = sf || {};
+var sitefinity = sitefinity || {};
 
 (function ($) {
 
     var loader,
-		loaderMarkup = '<div style="opacity:0.5; width:100%; z-index:3100; position:absolute;' +
-					   'top:0; height:100%; background: black center no-repeat ' +
-					   'url(#= appPath #Frontend-Assembly/Telerik.Sitefinity.Frontend/Mvc/Styles/Images/loading.gif);">' +
-					   '</div>',
-		loaderTemplate = kendo.template(loaderMarkup),
-		dialog;
+        loaderMarkup = '<div class="sf-loading-wrapper"><div class="sf-loading"><span></span></div></div>',
+        loaderTemplate = kendo.template(loaderMarkup),
+        dialog;
 
-	/**
-	 * Represents the Sitefinity page editor.
-	 */
-	sf.pageEditor = {
+    function isScriptTag(tag) {
+        return tag.tagName == 'SCRIPT' && (!tag.type || tag.type.toLowerCase() == 'text/javascript');
+    }
 
+    function extractScripts(markup) {
+        var div = document.createElement('div');
+        div.innerHTML = markup;
+        var scripts = div.getElementsByTagName('script');
+
+        var result = [];
+        for (var i = 0; i < scripts.length; i++) {
+            if (isScriptTag(scripts[i])) {
+                result.push(scripts[i]);
+            }
+        }
+
+        return result;
+    }
+
+    function stripScripts(markup) {
+        var div = document.createElement('div');
+        div.innerHTML = markup;
+        var scripts = div.getElementsByTagName('script');
+
+        var i = scripts.length;
+        while (i--) {
+            if (isScriptTag(scripts[i])) {
+                scripts[i].parentNode.removeChild(scripts[i]);
+            }
+        }
+
+        return div.innerHTML;
+    }
+
+    function loadScripts(container, scriptTags, loadHandler) {
+        var lab = $LAB.setOptions({
+            AlwaysPreserveOrder: true,
+            AllowDuplicates: true
+        });
+
+        for (var i = 0; i < scriptTags.length; i++) {
+            if (scriptTags[i].src) {
+                lab = lab.script(scriptTags[i].src);
+            }
+            else if (scriptTags[i].text) {
+                var text = scriptTags[i].text;
+                lab = lab.wait(function () { eval(text); }); // jshint ignore:line
+            }
+        }
+
+        lab.wait(loadHandler);
+    }
+
+  /**
+   * Represents the Sitefinity page editor.
+   */
+    sitefinity.pageEditor = {
 		/**
 		 * Shows the loading animation in the page editor.
 		 *
@@ -44,20 +93,23 @@ var sf = sf || {};
 		 * @param {String} markup The HTML markup to be rendered within the dialog.
 		 */
 		renderDialog: function (markup) {
-		    var jQueryAjaxSettingsCache = $.ajaxSettings.cache;
-		    $.ajaxSettings.cache = true;
-
 			dialog = $('<div />');
 			$('body').append(dialog);
+
+			var scriptTags = extractScripts(markup);
+			markup = stripScripts(markup);
+
 			dialog.append(markup);
-			this.hideLoader();
-			$.ajaxSettings.cache = jQueryAjaxSettingsCache;
+			dialog.on('hidden.bs.modal', this.destroyDialog);
 
-			$(dialog).on('hidden.bs.modal', this.destroyDialog);
+			var that = this;
+			loadScripts(dialog[0], scriptTags, function () {
+			    that.hideLoader();
 
-			if (typeof ($telerik) != 'undefined') {
-			    $telerik.$(document).trigger('dialogRendered');
-			}
+			    if (typeof ($telerik) != 'undefined') {
+			        $telerik.$(document).trigger('dialogRendered');
+			    }
+			});
 		},
 
 		/**
@@ -68,10 +120,36 @@ var sf = sf || {};
 			this.showLoader(args.AppPath);
 			this.widgetContext = args;
 
-			$.get(this.widgetContext.url)
+			var separator;
+			if (this.widgetContext.url.indexOf('?') > -1)
+			    separator = '&';
+			else
+			    separator = '?';
+
+			var url = this.widgetContext.url + separator + 'controlId=' + this.widgetContext.Id;
+			$.get(url)
 				.done($.proxy(this.renderDialog, this))
 				.fail(function (data) {
 					alert('There is a problem with loading the widget designer: ' + data);
+				});
+		},
+
+		openGridDialog: function (ev, args) {
+		    this.showLoader(args.AppPath);
+		    this.gridContext = args;
+
+		    var separator;
+		    if (this.gridContext.url.indexOf('?') > -1)
+		        separator = '&';
+		    else
+		        separator = '?';
+
+		    var url = this.gridContext.url + separator + 'controlId=' + this.gridContext.Id;
+		    url += '&gridTitle=' + this.gridContext.GridTitle;
+		    $.get(url)
+				.done($.proxy(this.renderDialog, this))
+				.fail(function (data) {
+				    alert('There is a problem with loading the grid designer: ' + data);
 				});
 		},
 
@@ -82,13 +160,15 @@ var sf = sf || {};
 			if (dialog) {
 				dialog.remove();
 				this.widgetContext = null;
+				this.gridContext = null;
 			}
 		},
 
 		/**
 		 * Provides the context for the currently active widget.
 		 */
-		widgetContext: null
+		widgetContext: null,
+        gridContext: null
 
 	};
 
@@ -96,7 +176,9 @@ var sf = sf || {};
 	 * Register the global Sitefinity events with the pageEditor component.
 	 */
 	if (typeof ($telerik) != 'undefined') {
-	    $telerik.$(document).on('needsModalDialog', $.proxy(sf.pageEditor.openDialog, sf.pageEditor));
-	    $telerik.$(document).on('modalDialogClosed', $.proxy(sf.pageEditor.destroyDialog, sf.pageEditor));
+	    $telerik.$(document).on('needsModalDialog', $.proxy(sitefinity.pageEditor.openDialog, sitefinity.pageEditor));
+	    $telerik.$(document).on('needsGridModalDialog', $.proxy(sitefinity.pageEditor.openGridDialog, sitefinity.pageEditor));
+	    $telerik.$(document).on('modalDialogClosed', $.proxy(sitefinity.pageEditor.destroyDialog, sitefinity.pageEditor));
+	    $telerik.$(document).on('gridModalDialogClosed', $.proxy(sitefinity.pageEditor.destroyDialog, sitefinity.pageEditor));
 	}
 })(jQuery);

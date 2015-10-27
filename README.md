@@ -1,7 +1,13 @@
 The Feather Project
 =======
 
-This repository contains the core infrastructure related to the Feather project. Note that the current implementation is not final, that it is a subject to changes as well as breaking API changes and should not be used in production.
+This repository contains the core infrastructure related to [Project Feather](http://projectfeather.sitefinity.com).
+
+
+| Test | Status |
+|----|----|
+| Unit | [![Build Status](https://feather-ci.sitefinity.com/buildStatus/icon?job=Master_FeatherUnitTests)](https://feather-ci.sitefinity.com/job/Master_FeatherUnitTests/) |
+| Integration | [![Build Status](https://feather-ci.sitefinity.com/buildStatus/icon?job=Master_FeatherIntegrationTests)](https://feather-ci.sitefinity.com/job/Master_FeatherIntegrationTests/) |
 
 # Related Repositories
 
@@ -9,39 +15,35 @@ This repository contains the core infrastructure related to the Feather project.
 
 [feather-packages](https://github.com/Sitefinity/feather-packages) - This repository contains front-end packages for the Feather project.
 
+[feather-samples](https://github.com/Sitefinity/feather-samples) - This repository contains code samples related to the Feather project.
+
+# Sitefinity  compatibility
+
+| Feather version | Sitefinity version |
+|----|----|
+| v.1.3.300.1 - latest | 8.1.5800.0 to 8.1.9999 |
+| v.1.2.120.0 - 1.2.290.1 | 8.0.5700.0 to 8.0.9999 |
+| v.1.1.20.3 - 1.1.110.0 | 7.3.5600.0 to 7.3.9999 |
+| v.1.0.0.0 - 1.0.10.2 | 7.2.5300.0 to 7.2.9999 |
+| v.0.5.1000.4  | 7.1.5208.0 to 7.1.9999 |
+| v.0.4.1000.2  | 7.1.5200.0 to 7.1.9999 |
+| v0.1.1000.1 - v.0.3.1000.4  | 7.0.5100.0 to 7.0.9999 |
+
 # Documentation
 
-[Getting Started](https://github.com/Sitefinity/feather/wiki/Getting-Started)
+[Getting Started](https://github.com/Sitefinity/feather/wiki/getting-started) - Follow the intallation installation to get started with Feather  
 
-[How to change MVC widget templates](https://github.com/Sitefinity/feather/wiki/How-to-change-MVC-widget-templates)
+[Upgrade Instructions](https://github.com/Sitefinity/feather/wiki/upgrade-instructions) - Upgrade your existing Feather projects following this guide  
 
-[How to create “Hello World” MVC widget in separate assembly](https://github.com/Sitefinity/feather/wiki/How-to-create-%E2%80%9CHello-World%E2%80%9D-MVC-widget-in-separate-assembly)
+[What's new](https://github.com/Sitefinity/feather/wiki/What's-new) - See what's new in Feather  
 
-[How to create a designer view](https://github.com/Sitefinity/feather/wiki/How-to-create-a-designer-view)
-
-[How to extend the designer with additional client logic](https://github.com/Sitefinity/feather/wiki/How-to-extend-the-designer-with-additional-client-logic)
-
-[How to refer resources inside MVC views](https://github.com/Sitefinity/feather/wiki/How-to-refer-to-resources-inside-MVC-views)
-
-[How to base a page template on a layout file by using convention](https://github.com/Sitefinity/feather/wiki/How-to-base-a-page-template-on-a-layout-file-by-using-convention)
-
-[How to replace commands displayed in the ZoneEditor that are specific for a widget](https://github.com/Sitefinity/feather/wiki/How-to-replace-commands-displayed-in-the-ZoneEditor-that-are-specific-for-a-widget)
-
-[How to keep using the old WebForms widget designer after the installation of Feather?](https://github.com/Sitefinity/feather/wiki/How-to-keep-using-the-old-WebForms-widget-designer-after-the-installation-of-Feather%3F)
-
-[How to use a custom client window for designers](https://github.com/Sitefinity/feather/wiki/How-to-use-a-custom-client-window-for-designers)
-
-[How to use a resource from a package] (https://github.com/Sitefinity/feather/wiki/How-to-use-a-resource-from-a-package)
-
-[Page templates based on layout files explained](https://github.com/Sitefinity/feather/wiki/Page-templates-based-on-layout-files-explained)
-
-[VirtualFile structure explained](https://github.com/Sitefinity/feather/wiki/VirtualFile-structure-explained)
+[Documentation Home](https://github.com/Sitefinity/feather/wiki) - See full project Feather documentation in the wiki  
 
 # License Information
 
 This project has been released under the Apache License, version 2.0, the text of which is included below. This license applies ONLY to the project-specific source of each repository and does not extend to Telerik Sitefinity CMS itself, or any other 3rd party libraries used in a repository. For licensing information about Telerik Sitefinity CMS, see the [License Agreements page](http://www.sitefinity.com/purchase/license-agreement) at [Sitefinity.com](http://www.sitefinity.com/).
 
-Copyright © 2014 Telerik
+Copyright © 2015 Telerik
 
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at
 

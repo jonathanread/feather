@@ -1,0 +1,13 @@
+﻿<sf-taxon-filter sf-query-data="sfQueryData" 
+    sf-taxonomy-fields="sfTaxonomyFields"
+    sf-provider="sfProvider"
+    sf-group-logical-operator="AND"
+    sf-item-logical-operator="OR"
+    class="sf-taxon-filter"
+    ng-if="sfTaxonomyFields && sfTaxonomyFields.length"></sf-taxon-filter>
+
+ <sf-date-filter sf-query-data="sfQueryData"
+     sf-group-logical-operator="AND"
+     sf-item-logical-operator="AND"
+     sf-query-field-name="PublicationDate"
+     class="sf-date-filter"></sf-date-filter>

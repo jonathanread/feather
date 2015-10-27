@@ -26,8 +26,8 @@ namespace Telerik.Sitefinity.Frontend.GridSystem
         protected override ITemplate GetTemplate()
         {
             var layout = this.Layout;
-            bool isVirtualPath = layout.StartsWith("~/");
-            bool isHtmlTemplate = layout.EndsWith(".html", StringComparison.OrdinalIgnoreCase) || layout.EndsWith(".htm", StringComparison.OrdinalIgnoreCase);
+            bool isVirtualPath = layout.StartsWith("~/", StringComparison.Ordinal);
+            bool isHtmlTemplate = layout.EndsWith(".html", StringComparison.OrdinalIgnoreCase) || layout.EndsWith(".htm", StringComparison.Ordinal);
             ITemplate template = this.GetTemplate(isVirtualPath, isHtmlTemplate, layout);
             return template;
         }
@@ -35,11 +35,11 @@ namespace Telerik.Sitefinity.Frontend.GridSystem
         /// <summary>
         /// Makes sure that the system containers are runat="server" so the layout declaration can be used as a proper container.
         /// </summary>
-        /// <param name="template">The template.</param>
+        /// <param name="targetTemplate">The template.</param>
         /// <param name="ensureSfColsWrapper">if set to <c>true</c> ensures sf_cols containers exists in the template.</param>
-        protected virtual string ProcessLayoutString(string template, bool ensureSfColsWrapper)
+        protected virtual string ProcessLayoutString(string targetTemplate, bool ensureSfColsWrapper)
         {
-            using (HtmlParser parser = new HtmlParser(template))
+            using (var parser = new HtmlParser(targetTemplate))
             {
                 parser.SetChunkHashMode(false);
                 parser.AutoExtractBetweenTagsOnly = false;
@@ -57,11 +57,11 @@ namespace Telerik.Sitefinity.Frontend.GridSystem
                         if (cssClass != null)
                         {
                             var classes = cssClass.Split(new char[] { ' ' });
-                            var chunkHasSfCols = classes.Contains("sf_cols", StringComparer.OrdinalIgnoreCase);
+                            var chunkHasSfCols = classes.Contains("sf_cols", StringComparer.Ordinal);
                             hasSfCols = hasSfCols || chunkHasSfCols;
                             if (chunkHasSfCols ||
-                                classes.Contains("sf_colsIn", StringComparer.OrdinalIgnoreCase) ||
-                                classes.Contains("sf_colsOut", StringComparer.OrdinalIgnoreCase))
+                                classes.Contains("sf_colsIn", StringComparer.Ordinal) ||
+                                classes.Contains("sf_colsOut", StringComparer.Ordinal))
                             {
                                 chunk.SetAttribute("runat", "server");
                                 modified = true;
@@ -76,10 +76,8 @@ namespace Telerik.Sitefinity.Frontend.GridSystem
                 {
                     return "<div runat=\"server\" class=\"sf_cols\">" + output.ToString() + "</div>";
                 }
-                else
-                {
-                    return output.ToString();
-                }
+
+                return output.ToString();
             }
         }
 
@@ -99,7 +97,7 @@ namespace Telerik.Sitefinity.Frontend.GridSystem
                     throw new ArgumentException(Res.Get<ErrorMessages>("CannotFindTemplate", layout));
                 }
 
-                using (StreamReader reader = new StreamReader(HostingEnvironment.VirtualPathProvider.GetFile(layout).Open()))
+                using (var reader = new StreamReader(HostingEnvironment.VirtualPathProvider.GetFile(layout).Open()))
                 {
                     layout = reader.ReadToEnd();
                 }
@@ -108,10 +106,11 @@ namespace Telerik.Sitefinity.Frontend.GridSystem
             {
                 return ControlUtilities.GetTemplate(layout, null, null, null);
             }
-            else if (layout.EndsWith(".ascx", StringComparison.OrdinalIgnoreCase))
+            else if (layout != null && layout.EndsWith(".ascx", StringComparison.Ordinal))
             {
                 Type assemblyInfo;
-                if (String.IsNullOrEmpty(this.AssemblyInfo))
+
+                if (string.IsNullOrEmpty(this.AssemblyInfo))
                     assemblyInfo = Config.Get<ControlsConfig>().ResourcesAssemblyInfo;
                 else
                     assemblyInfo = TypeResolutionService.ResolveType(this.AssemblyInfo, true);
@@ -119,14 +118,14 @@ namespace Telerik.Sitefinity.Frontend.GridSystem
                 return ControlUtilities.GetTemplate(null, layout, assemblyInfo, null);
             }
 
-            //Add sf_cols wrapper for back end pages and email campaigns.
+            // Add sf_cols wrapper for back end pages and email campaigns.
             var currentNode = SiteMapBase.GetActualCurrentNode();
             var rootNode = currentNode != null ? currentNode.RootNode as PageSiteNode : null;
             var ensureSfColsWrapper = this.IsBackend() || rootNode == null || rootNode.Id == NewslettersModule.standardCampaignRootNodeId ||
                 System.Web.HttpContext.Current.Items[SiteMapBase.CurrentNodeKey] == null;
             layout = this.ProcessLayoutString(layout, ensureSfColsWrapper);
 
-            return ControlUtilities.GetTemplate(null, layout.GetHashCode().ToString(), null, layout);
+            return ControlUtilities.GetTemplate(null, layout.GetHashCode().ToString(System.Globalization.CultureInfo.InvariantCulture), null, layout);
         }
 
         /// <summary>
@@ -137,12 +136,16 @@ namespace Telerik.Sitefinity.Frontend.GridSystem
         /// <returns></returns>
         protected virtual string GetAttributeValue(HtmlChunk chunk, string attributeName)
         {
-            var idx = Array.FindIndex(chunk.Attributes, 0, chunk.ParamsCount, i => i.Equals(attributeName, StringComparison.OrdinalIgnoreCase));
-            if (idx != -1)
-                return chunk.Values[idx];
-            else
-                return null;
-        }
+            if (chunk != null)
+            {
+                var idx = Array.FindIndex(chunk.Attributes, 0, chunk.ParamsCount, i => i.Equals(attributeName, StringComparison.Ordinal));
+                if (idx != -1)
+                {
+                    return chunk.Values[idx];
+                }
+            }
 
+            return null;
+        }
     }
 }

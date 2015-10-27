@@ -1,0 +1,14 @@
+﻿<div class="form-group row">
+  <sf-site-selector class="col-xs-5" sf-site="sfSite" ng-show="hasMultipleSites"></sf-site-selector>
+
+  <sf-language-selector class="col-xs-5" sf-site="sfSite"
+                        sf-culture="sfCulture"></sf-language-selector>
+</div>
+
+<sf-list-selector sf-template-url="client-components/selectors/multi-site/sf-list-selector.html"
+                  sf-page-selector="sfSite"
+                  sf-culture="sfCulture"
+                  sf-selected-item-id="sfSelectedItemId"
+                  sf-selected-item="sfSelectedItem"
+                  sf-keep-selected-items-bound="true"
+                  sf-bind-on-load="{{sfBindOnLoad}}"></sf-list-selector>

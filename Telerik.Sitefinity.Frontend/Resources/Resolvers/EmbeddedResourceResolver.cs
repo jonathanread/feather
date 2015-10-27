@@ -14,7 +14,7 @@ namespace Telerik.Sitefinity.Frontend.Resources.Resolvers
     /// <summary>
     /// This class implements a resource resolver node that gets embedded resources from a specified assembly.
     /// </summary>
-    public class EmbeddedResourceResolver : ResourceResolverNode
+    internal class EmbeddedResourceResolver : ResourceResolverNode
     {
         /// <inheritdoc />
         protected override CacheDependency GetCurrentCacheDependency(PathDefinition definition, string virtualPath, IEnumerable virtualPathDependencies, DateTime utcStart)
@@ -53,15 +53,14 @@ namespace Telerik.Sitefinity.Frontend.Resources.Resolvers
             var resourceName = this.GetResourceName(definition, path);
             if (resourceName != null)
             {
+                var regEx = new Regex(resourceName, RegexOptions.IgnoreCase);
                 var assembly = this.GetAssembly(definition);
                 return assembly.GetManifestResourceNames()
                     .Where(r => r.StartsWith(resourceName, StringComparison.OrdinalIgnoreCase))
-                    .Select(r => r.Replace(resourceName, path));
+                    .Select(r => regEx.Replace(r, path));
             }
-            else
-            {
-                return null;
-            }
+
+            return null;
         }
 
         /// <summary>
@@ -78,10 +77,10 @@ namespace Telerik.Sitefinity.Frontend.Resources.Resolvers
                 var definitionVp = VirtualPathUtility.AppendTrailingSlash(VirtualPathUtility.ToAppRelative(definition.VirtualPath));
                 var vp = VirtualPathUtility.ToAppRelative(virtualPath);
 
-                if (!vp.StartsWith(definitionVp))
+                if (!vp.StartsWith(definitionVp, StringComparison.OrdinalIgnoreCase))
                     return null;
 
-                var dir = !vp.EndsWith("/") ? VirtualPathUtility.GetDirectory(vp) : vp;
+                var dir = !vp.EndsWith("/", StringComparison.OrdinalIgnoreCase) ? VirtualPathUtility.GetDirectory(vp) : vp;
                 vp = Regex.Replace(dir, @"[ \-]", "_") + Path.GetFileName(vp);
                 path = assemblyName + "." + vp.Substring(definitionVp.Length).Replace('/', '.');
             }
@@ -91,29 +90,6 @@ namespace Telerik.Sitefinity.Frontend.Resources.Resolvers
             }
 
             return path;
-        }
-
-        /// <summary>
-        /// Gets the assembly which is specified in the PathDefinition.
-        /// </summary>
-        /// <param name="definition">The path definition.</param>
-        /// <exception cref="System.InvalidOperationException">Invalid PathDefinition.</exception>
-        protected virtual Assembly GetAssembly(PathDefinition definition)
-        {
-            object assembly;
-            if (!definition.Items.TryGetValue("Assembly", out assembly))
-            {
-                lock (this)
-                {
-                    if (!definition.Items.TryGetValue("Assembly", out assembly))
-                    {
-                        assembly = Assembly.LoadFrom(definition.ResourceLocation);
-                        definition.Items.Add("Assembly", assembly);
-                    }
-                }
-            }
-            
-            return (Assembly)assembly;
         }
     }
 }

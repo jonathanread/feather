@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+﻿using System.Collections.Generic;
 using Telerik.Microsoft.Practices.Unity;
 using Telerik.Sitefinity.Abstractions;
 using Telerik.Sitefinity.Frontend.Resources;
@@ -11,15 +8,27 @@ namespace Telerik.Sitefinity.Frontend.FilesMonitoring
     /// <summary>
     /// This class contains logic for configuring the file monitoring functionality. 
     /// </summary>
-    public class FileMonitoringInitializer
+    internal class FileMonitoringInitializer
     {
         /// <summary>
         /// Initializes and configure file monitoring functionality.
         /// </summary>
         public void Initialize()
         {
-            ObjectFactory.Container.RegisterType<IFileMonitor, FileMonitor>(new ContainerControlledLifetimeManager());
-            ObjectFactory.Container.RegisterType<IFileManager, LayoutFileManager>(ResourceType.Layouts.ToString(), new ContainerControlledLifetimeManager());
+            if (!ObjectFactory.Container.IsRegistered(typeof(IFileMonitor)))
+            {
+                ObjectFactory.Container.RegisterType<IFileMonitor, FileMonitor>(new ContainerControlledLifetimeManager());
+            }
+
+            if (!ObjectFactory.Container.IsRegistered(typeof(IFileManager), ResourceType.Layouts.ToString()))
+            {
+                ObjectFactory.Container.RegisterType<IFileManager, LayoutFileManager>(ResourceType.Layouts.ToString(), new ContainerControlledLifetimeManager());
+            }
+
+            if (!ObjectFactory.Container.IsRegistered(typeof(IFileManager), ResourceType.Grid.ToString()))
+            {
+                ObjectFactory.Container.RegisterType<IFileManager, GridFileManager>(ResourceType.Grid.ToString(), new ContainerControlledLifetimeManager());
+            }
 
             this.RegisterFileObservers();
         }

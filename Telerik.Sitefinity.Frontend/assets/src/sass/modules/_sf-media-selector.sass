@@ -1,0 +1,464 @@
+// Content and Sidebar
+.Media-content,
+.Media-sidebar
+	position: absolute
+	top: 0
+	bottom: 0
+	overflow-y: auto
+
+// Content
+.Media-content
+	right: 260px
+	left: 0
+
+// Sidebar
+.Media-sidebar
+	width: 260px
+	right: 0
+	padding: 20px 20px 20px 0
+	border-left: 1px solid #e5e5e5
+
+.Media-sidebar-content
+	height: calc(100% - 10px)
+	margin: -20px -20px 0 0
+	padding: 20px
+	overflow-y: auto
+
+
+.Media-items
+	padding: 10px 20px 0
+	position: absolute
+	top: 46px
+	bottom: 45px
+	right: 0
+	left: 0
+	overflow-y: auto !important // Needed to overwrite the overflow: scroll inline style
+
+	.Media-items-holder
+		padding-bottom: 20px
+
+// Folder/File common styles
+.Media-folder,
+.Media-file
+	display: inline-block
+	width: 160px
+	margin: 10px 10px 0 0
+	padding: 10px
+	vertical-align: top
+	text-align: center
+	cursor: pointer
+
+// Folder
+.Media-folder
+	height: 160px
+	position: relative
+	border-radius: 3px
+	line-height: normal
+
+	i
+		font-size: 75px
+		margin-bottom: 5px
+		display: inline-block
+		color: #bfbfbf
+		transition: color .2s ease
+
+	&:hover
+		i
+			color: #9B9B9B
+		strong
+			color: #23547c
+			text-decoration: underline
+
+		.Media-folder-title
+			color: #23547c
+			text-decoration: underline
+
+	strong
+		display: inline-block
+		color: #337cb7
+		overflow: hidden
+		text-overflow: ellipsis
+		white-space: nowrap
+		width: 130px
+
+	.is-list strong
+		display: none
+
+	> div
+		width: 100%
+		display: table
+		table-layout: fixed
+
+	.is-list .Media-file-thumb-holder
+		border: 0
+
+	.Media-item-info
+		bottom: 55px
+		right: 38px
+
+.Media-folder-title
+	width: 50%
+	display: none
+	color: #337cb7
+	padding: 0 10px
+
+
+	&.Media-folder-title--wa
+		width: auto
+
+// File
+.Media-file
+	position: relative
+	overflow: hidden
+	border-radius: 3px
+	transition: color .2s ease, background-color .2s ease
+
+	img
+		max-width: 100%
+		max-height: 100%
+
+	.is-list img
+		max-width: none
+		max-height: none
+		width: 100%
+		height: auto
+
+	&:hover,
+	&:focus
+		background: #eee
+
+	&.is-selected
+		background-color: #428BCA
+		color: #fff
+
+
+		&:hover,
+		&:focus
+			background: #F2F2F2
+
+		&.is-selected
+			background-color: #428BCA
+			color: #fff
+
+			.Media-item-title,
+			.Media-item-meta,
+			.Media-item-date
+				color: #fff
+
+.Media-file-thumb
+	vertical-align: middle
+	display: table
+
+.Media-file-thumb-holder
+	width: 140px
+	height: 140px
+	overflow: hidden
+	display: table-cell
+	vertical-align: middle
+
+.Media-item-title,
+.Media-item-meta,
+.Media-item-date
+	font-size: 13px
+	display: none
+
+.Media-item-title
+	margin-top: 5px
+	text-overflow: ellipsis
+	white-space: nowrap
+	overflow: hidden
+
+.Media-item-date
+	color: #999
+
+.Media-item-info
+	position: absolute
+	bottom: 13px
+	right: 13px
+	background: #000000
+	border-radius: 50%
+	z-index: 9999
+	width: 16px
+	height: 16px
+	line-height: 16px
+	color: #fff
+	font-family: Georgia
+	font-size: 12px
+	text-align: center
+	opacity: 0
+	transition: opacity .3s ease
+	font-weight: 700
+
+.Media-file:hover .Media-item-info,
+.Media-folder:hover .Media-item-info
+	opacity: .6
+
+	&:hover
+		opacity: 1 !important
+
+// Settings
+.Media-settings
+	background: #f2f2f2
+	width: 100%
+	height: 45px
+	line-height: 42px
+	padding: 0 5px 0 20px
+	position: absolute
+	top: 0
+	left: 0
+	right: 0
+
+	.breadcrumb
+		padding: 0
+		background: none
+
+	li:last-child .breadcrumb
+		color: #999
+		cursor: text
+		&:hover
+			text-decoration: none
+
+
+.Media-settings--bottom
+	top: auto
+	bottom: 0
+	padding: 0 20px
+	border-top: 1px solid #e5e5e5
+	border-bottom: none
+	background: none
+
+	a
+		color: #777
+
+		&:hover
+			color: #333
+
+// Sort and view options
+.Media-settings-sort
+	margin-right: -10px
+
+.Media-upload-text
+	position: absolute
+	top: 50%
+	left: 0
+	right: 0
+	margin-top: -100px
+
+	.lead
+		margin-bottom: 0
+
+.Media-no-results
+	margin-top: 65px
+	margin-left: 20px
+
+// In image properties screen
+.sf-Media--info
+	overflow: hidden
+	img
+		max-width: 100%
+
+	h4
+		@include text-overflow()
+
+.sf-Media--info-image
+	margin-right: 20px
+	float: left
+
+.sf-Media--info-doc
+	width: 160px
+	height: 160px
+	margin-right: 20px
+	float: left
+	display: table
+	background-color: #fff
+	border: 1px solid #ccc
+
+	.sf-Media--info-doc-holder
+		display: table-cell
+		vertical-align: middle
+		text-align: center
+
+.sf-Media--info-video
+	width: 250px
+	margin-right: 20px
+	float: left
+	position: relative
+	cursor: pointer
+	video
+		max-width: 100%
+
+.sf-Media--info-video-big
+	margin: -20px -20px 15px
+	background: #000
+	video
+		display: block
+		margin: 0 auto
+
+.sf-Media-play-button
+	position: absolute
+	top: 50%
+	left: 50%
+	margin-top: -30px
+	margin-left: -30px
+	width: 60px
+	height: 60px
+	color: #fff
+	font-size: 23px
+	background-color: #000
+	opacity: 0.6
+	cursor: pointer
+	border-radius: 5px
+
+.sf-Media-play-button
+	&:before
+		position: absolute
+		top: 16px
+		left: 19px
+
+// Nav styles for sidebar links
+// Should be moved to another .sass file
+.nav-sm
+	>li
+		>a
+			padding: 5px 10px
+			@include text-overflow()
+
+.nav-stacked
+	strong
+		padding: 6px
+		display: block
+		@include text-overflow()
+
+	a
+		color: #000
+
+	li.active > a
+		&,
+		&:hover
+			background-color: #428bca
+
+
+
+
+//Document selector
+.Media-file
+	&.Media-file--doc
+
+		.Media-file-thumb-holder
+			height: 120px
+			border: 1px solid #e5e5e5
+			background: #fff
+
+		.is-list .Media-file-thumb-holder
+			height: auto
+			line-height: 38px
+			border: none
+			background: none
+
+		.Media-item-title
+			display: block
+
+		.Media-item-info
+			bottom: 37px
+			right: 15px
+
+		&.is-selected
+			.icon-file
+				color: #999
+			.is-list .icon-file
+				color: #fff
+
+			.Media-file-thumb-holder
+				border-color: #fff
+
+
+
+//Video selector
+.Media-file
+	&.Media-file--video
+		height: auto
+
+		.Media-file-thumb-holder
+			height: 105px
+
+		.is-list .Media-file-thumb-holder
+			height: auto
+
+		.Media-item-title
+			display: block
+
+		.Media-item-info
+			bottom: 37px
+			right: 15px
+
+
+.is-list
+	.Media-items
+		padding: 0
+
+	.Media-item-info
+		display: none !important
+
+	.Media-item-title
+		width: 50%
+
+	.Media-item-title,
+	.Media-item-meta,
+	.Media-item-date
+		display: table-cell
+		padding: 0 10px
+
+	.Media-folder,
+	.Media-file
+		display: block
+		width: 100%
+		height: auto
+		padding: 10px 20px
+		margin: 0
+		vertical-align: top
+		text-align: left
+		cursor: pointer
+		border-bottom: 1px solid #e5e5e5
+		transition: background-color .2s ease
+
+		&:hover,
+		&:focus
+			border-color: #e5e5e5
+			background: #f2f2f2
+
+	.Media-file
+		border-radius: 0
+
+	.Media-file-wrapper
+		width: 100%
+		height: 50px
+		table-layout: fixed
+		display: table
+
+	.Media-file-thumb-holder
+		display: inline-block
+		width: 48px
+		height: 48px
+		line-height: 48px
+		text-align: center
+
+	.Media-file-thumb
+		width: 50px
+		height: 44px
+		padding: 0 !important
+		display: table-cell
+		overflow: hidden
+		vertical-align: top
+
+	.Media-folder-title
+		display: table-cell
+		font-weight: 700
+
+	.Media-folder
+		i
+			font-size: 48px
+			margin-bottom: 0
+
+		&:hover,
+		&:focus
+			background: none

@@ -1,0 +1,44 @@
+﻿<div ng-controller="SfVideoFieldCtrl">
+  <div class="sf-Media--info-video-big" ng-show="showVideo">
+    <video preload="none" id="sfVideoPlayer" controls="controls" ng-src="{{sfMedia.MediaUrl}}"></video>
+  </div>
+  <div class="sf-Media--info-video" ng-hide="showVideo">
+    <div ng-show="sfMedia && !showVideo" ng-click="playVideo('#sfVideoPlayer')">
+      <video preload="metadata" ng-src="{{sfMedia.MediaUrl}}"></video>
+      <div class="sf-Media-play-button glyphicon glyphicon-play"></div>
+    </div>
+  </div>
+  <div ng-hide="sfMedia">
+    <span>
+      @(Res.Get<ClientComponentsResources>().VideoHasBeenDeleted)</span>
+  </div>
+  
+  <div class="sf-Media--info">
+
+      <div ng-show="sfMedia">
+          <strong>@(Res.Get<ClientComponentsResources>().Title): </strong>
+          <span ng-bind="sfMedia.Title.Value"></span><br />
+
+          <strong>@(Res.Get<ClientComponentsResources>().Type) </strong>
+          <span ng-bind="sfMedia.Extension"></span><br />
+
+          <strong>@(Res.Get<ClientComponentsResources>().FileSize) </strong>
+          <span ng-bind="mediaSize"></span><br />
+
+          <strong>@(Res.Get<ClientComponentsResources>().Uploaded) </strong>
+          <span ng-bind="uploaded | date : 'M/d/yyyy h:mm'"></span>
+      </div>
+      <br/>
+      <button class="btn btn-xs btn-default" ng-click="changeMedia(); pauseVideo('#sfVideoPlayer')">@(Res.Get<ClientComponentsResources>().ChangeVideo)</button>
+      <button class="btn btn-xs btn-default" ng-show="showEditPropertiesButton && sfMedia" ng-click="editAllProperties(); pauseVideo('#sfVideoPlayer')">@(Res.Get<ClientComponentsResources>().EditAllProperties)</button>
+
+  </div>
+</div>
+
+<div class="mediaSelectorModal"
+     template-url="{{sfSelectorModelTemplate}}"
+     modal
+     size="normal"
+     window-class="modal-fluid sf-backend-wrp"
+     existing-scope="true">
+</div>

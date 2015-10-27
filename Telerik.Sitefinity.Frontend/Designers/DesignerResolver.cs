@@ -1,17 +1,16 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
 using Telerik.Sitefinity.Abstractions;
-using Telerik.Sitefinity.Frontend.Mvc.Controllers;
 using Telerik.Sitefinity.Frontend.Mvc.Infrastructure.Controllers;
 using Telerik.Sitefinity.Frontend.Resources;
+using Telerik.Sitefinity.Web.UI.ControlDesign;
 
 namespace Telerik.Sitefinity.Frontend.Designers
 {
     /// <summary>
     /// This class contains logic for resolving the designer responsible for the property editing of a widget.
     /// </summary>
-    public class DesignerResolver : IDesignerResolver
+    internal class DesignerResolver : IDesignerResolver
     {
         #region Public members
 
@@ -29,6 +28,9 @@ namespace Telerik.Sitefinity.Frontend.Designers
             if (widgetType == null)
                 throw new ArgumentNullException("widgetType");
 
+            if (this.HasCustomWebFormsDesigner(widgetType))
+                return null;
+
             string designerUrl;
             if (!this.TryResolveUrlFromAttribute(widgetType, out designerUrl))
                 designerUrl = this.GetDefaultUrl(widgetType);
@@ -36,10 +38,21 @@ namespace Telerik.Sitefinity.Frontend.Designers
             return new PackageManager().EnhanceUrl(designerUrl);
         }
 
-        #endregion 
+        #endregion
 
         #region Private members
-        
+
+        private bool HasCustomWebFormsDesigner(Type widgetType)
+        {
+            var attributes = widgetType.GetCustomAttributes(typeof(ControlDesignerAttribute), inherit: true);
+            var designerAttr = attributes.FirstOrDefault() as ControlDesignerAttribute;
+
+            if (designerAttr != null)
+                return true;
+
+            return false;
+        }
+
         /// <summary>
         /// Resolve a designer URL for the specified widget type if such is specified with <see cref="DesignerUrlAttribute"/>.
         /// </summary>
@@ -65,18 +78,22 @@ namespace Telerik.Sitefinity.Frontend.Designers
         /// <summary>
         /// Gets the default designer URL.
         /// </summary>
-        /// <param name="widgetName">Name of the widget.</param>
+        /// <param name="widgetType">Type of the widget.</param>
         /// <returns></returns>
         private string GetDefaultUrl(Type widgetType)
         {
             string designerUrl = null;
+
+            if (typeof(GridSystem.GridControl).IsAssignableFrom(widgetType))
+                return DesignerResolver.DefaultGridActionUrlTemplate;
+
             var controllerRegistry = FrontendManager.ControllerFactory;
             bool isController = controllerRegistry.IsController(widgetType);
 
             if (isController)
             {
                 string controllerName = controllerRegistry.GetControllerName(widgetType);
-                designerUrl = string.Format(DesignerResolver.defaultActionUrlTemplate, controllerName);
+                designerUrl = string.Format(System.Globalization.CultureInfo.InvariantCulture, DesignerResolver.DefaultActionUrlTemplate, controllerName);
             }
 
             return designerUrl;
@@ -85,9 +102,10 @@ namespace Telerik.Sitefinity.Frontend.Designers
         #endregion
 
         #region Constants
-        
-        private const string defaultActionUrlTemplate = "~/Telerik.Sitefinity.Frontend/Designer/Master/{0}";
 
-        #endregion 
+        private const string DefaultActionUrlTemplate = "~/Telerik.Sitefinity.Frontend/Designer/Master/{0}";
+        private const string DefaultGridActionUrlTemplate = "~/Telerik.Sitefinity.Frontend/GridDesigner/Master/GridDesigner";
+
+        #endregion
     }
 }

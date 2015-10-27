@@ -1,0 +1,5 @@
+﻿<ul class="sf-Tree">
+    <li class="sf-Tree-item" ng-repeat="item in items track by $index" ng-click="select(item)">
+        <span ng-class="{ 'is-selected': isSelected(item) }">{{item.text}}</span>
+    </li>
+</ul>

@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+﻿using System.Collections.Generic;
 using Telerik.OpenAccess;
 using Telerik.OpenAccess.Metadata.Fluent;
 using Telerik.Sitefinity.Model;
@@ -11,7 +8,7 @@ namespace Telerik.Sitefinity.Frontend.FilesMonitoring.Data
     /// <summary>
     /// A concrete implementation of the <see cref="OpenAccessFluentMappingBase"/> for the file monitoring.
     /// </summary>
-    public class FileMonitorFluentMapping : OpenAccessFluentMappingBase
+    internal class FileMonitorFluentMapping : OpenAccessFluentMappingBase
     {
         #region Contructors
 
@@ -56,7 +53,5 @@ namespace Telerik.Sitefinity.Frontend.FilesMonitoring.Data
         }
 
         #endregion
-
-
     }
 }

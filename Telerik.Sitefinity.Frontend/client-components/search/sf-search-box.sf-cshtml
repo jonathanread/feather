@@ -1,0 +1,12 @@
+﻿<div ng-show="!showError">
+    <div class="input-group">
+        <span class="input-group-addon">
+          <i class="glyphicon glyphicon-search"></i>
+        </span>
+        <input class="form-control" ng-model="sfModel" ng-change="sfSearchCallback()" placeholder="{{sfPlaceholder}}" />
+    </div>
+    <ul ng-if="sfEnableSuggestions" ng-show="showSuggestions">
+        <li ng-repeat="item in suggestions">{{item}}</li>
+    </ul>
+</div>
+<span ng-show="showError">@(Res.Get<ClientComponentsResources>().SfActionAttrRequired)</span>

@@ -1,4 +1,7 @@
 ﻿using System;
+using System.Diagnostics.CodeAnalysis;
+using System.Reflection;
+using System.Web;
 using System.Web.UI;
 using Telerik.Sitefinity.Frontend.Mvc.Helpers.ViewModels;
 using Telerik.Sitefinity.Modules.Pages;
@@ -7,6 +10,7 @@ using Telerik.Sitefinity.Security.Claims;
 using Telerik.Sitefinity.Security.Model;
 using Telerik.Sitefinity.Services;
 using Telerik.Sitefinity.Web;
+using Telerik.Sitefinity.Web.Events;
 
 namespace Telerik.Sitefinity.Frontend.Mvc.Helpers
 {
@@ -65,9 +69,40 @@ namespace Telerik.Sitefinity.Frontend.Mvc.Helpers
         /// <returns></returns>
         public static bool IsBackend
         {
-            get 
-            { 
-                return ControlExtensions.IsBackend(); 
+            get
+            {
+                return ControlExtensions.IsBackend();
+            }
+        }
+
+        /// <summary>
+        /// Determines whether this method is invoked from Sitefinity's preview mode.
+        /// </summary>
+        public static bool IsPreviewMode
+        {
+            get
+            {
+                return SystemManager.IsPreviewMode;
+            }
+        }
+
+        /// <summary>
+        /// Gets the frontend login URL for the current site as configured in the backend.
+        /// </summary>
+        /// <value>
+        /// The frontend login URL.
+        /// </value>
+        [SuppressMessage("Microsoft.Design", "CA1056:UriPropertiesShouldNotBeStrings")]
+        [SuppressMessage("Microsoft.Naming", "CA1726:UsePreferredTerms", MessageId = "Login")]
+        public static string FrontendLoginUrl
+        {
+            get
+            {
+                var redirectStrategy = RedirectStrategyType.None;
+                var wrapper = new HttpContextWrapper(HttpContext.Current);
+                var pageUrl = RouteHelper.GetFrontEndLogin(wrapper, out redirectStrategy);
+
+                return pageUrl;
             }
         }
 
@@ -90,17 +125,15 @@ namespace Telerik.Sitefinity.Frontend.Mvc.Helpers
             {
                 var pm = new PageManager();
                 var pageNode = pm.GetPageNode(new Guid(siteMapProvider.CurrentNode.Key));
-                var result = new PageDataViewModel()
+                var result = new PageDataViewModel
                 {
                     Title = pageNode.Page.Title,
                     Keywords = pageNode.Page.Keywords
                 };
                 return result;
             }
-            else
-            {
-                return new PageDataViewModel();
-            }
+
+            return new PageDataViewModel();
         }
 
         private static ProfileViewModel GetCurrentSitefinityUserProfile()
@@ -109,7 +142,7 @@ namespace Telerik.Sitefinity.Frontend.Mvc.Helpers
             var currentUserGuid = identity.UserId;
             if (currentUserGuid != Guid.Empty)
             {
-                UserProfileManager profileManager = UserProfileManager.GetManager();
+                var profileManager = UserProfileManager.GetManager();
                 var user = SecurityManager.GetUser(currentUserGuid);
                 if (user != null)
                 {

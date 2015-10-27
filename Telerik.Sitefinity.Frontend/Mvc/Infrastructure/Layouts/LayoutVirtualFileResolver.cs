@@ -1,23 +1,19 @@
 ﻿using System;
 using System.Collections;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Text;
 using System.Web;
 using System.Web.Caching;
 using System.Web.Hosting;
-using System.Web.Mvc;
-using Telerik.Sitefinity.Abstractions;
 using Telerik.Sitefinity.Abstractions.VirtualPath;
-using Telerik.Sitefinity.Frontend.Mvc.Controllers;
+using Telerik.Sitefinity.Frontend.Resources;
 
 namespace Telerik.Sitefinity.Frontend.Mvc.Infrastructure.Layouts
 {
     /// <summary>
     /// This class is responsible for locating and resolving of the Layouts.
     /// </summary>
-    public class LayoutVirtualFileResolver : IHashedVirtualFileResolver
+    internal class LayoutVirtualFileResolver : IVirtualFileResolver
     {
         #region Public methods
 
@@ -28,16 +24,17 @@ namespace Telerik.Sitefinity.Frontend.Mvc.Infrastructure.Layouts
         /// <param name="virtualPath">The virtual path to check.</param>
         public virtual bool Exists(PathDefinition definition, string virtualPath)
         {
+            virtualPath = this.virtualPathBuilder.RemoveParams(virtualPath);
             virtualPath = VirtualPathUtility.ToAppRelative(virtualPath);
 
-            var vpBuilder = new LayoutVirtualPathBuilder();
-            string viewName = vpBuilder.GetLayoutName(definition, virtualPath);
+            var layoutVirtualPathBuilder = new LayoutVirtualPathBuilder();
+            string viewName = layoutVirtualPathBuilder.GetLayoutName(definition, virtualPath);
             var layoutTemplateBuilder = new LayoutRenderer();
 
             if (string.IsNullOrEmpty(viewName))
                 return false;
 
-            if (virtualPath.StartsWith(string.Format("~/{0}", LayoutVirtualFileResolver.ResolverPath)))
+            if (virtualPath.StartsWith(string.Format(System.Globalization.CultureInfo.InvariantCulture, "~/{0}", LayoutVirtualFileResolver.ResolverPath), StringComparison.Ordinal))
                 return layoutTemplateBuilder.LayoutExists(viewName);
             else
                 return false;
@@ -49,11 +46,14 @@ namespace Telerik.Sitefinity.Frontend.Mvc.Infrastructure.Layouts
         /// <param name="virtualPath">The virtual path of the file to open.</param>
         public virtual Stream Open(PathDefinition definition, string virtualPath)
         {
+            var placeholdersOnly = virtualPath.EndsWith(".master", StringComparison.OrdinalIgnoreCase);
+            virtualPath = this.virtualPathBuilder.RemoveParams(virtualPath);
+
             MemoryStream outPutStream = null;
             virtualPath = VirtualPathUtility.ToAppRelative(virtualPath);
-            var vpBuilder = new LayoutVirtualPathBuilder();
-            string viewName = vpBuilder.GetLayoutName(definition, virtualPath);
-            var layoutHtmlString = this.RenderLayout(viewName);
+            var virtualBuilder = new LayoutVirtualPathBuilder();
+            var viewName = virtualBuilder.GetLayoutName(definition, virtualPath);
+            var layoutHtmlString = this.RenderLayout(viewName, placeholdersOnly);
 
             if (!string.IsNullOrEmpty(layoutHtmlString))
             {
@@ -74,47 +74,44 @@ namespace Telerik.Sitefinity.Frontend.Mvc.Infrastructure.Layouts
         /// </returns>
         public CacheDependency GetCacheDependency(PathDefinition definition, string virtualPath, IEnumerable virtualPathDependencies, DateTime utcStart)
         {
-            return null;
-        }
+            virtualPath = this.virtualPathBuilder.RemoveParams(virtualPath);
+            virtualPath = VirtualPathUtility.ToAppRelative(virtualPath);
 
-        /// <summary>
-        /// Returns a hash of the specified virtual paths.
-        /// </summary>
-        /// <param name="definition">The file resolver definition.</param>
-        /// <param name="virtualPath">The path to the primary virtual resource.</param>
-        /// <param name="virtualPathDependencies">An array of paths to other virtual resources required by the primary virtual resource.</param>
-        /// <returns>
-        /// A hash of the specified virtual paths.
-        /// </returns>
-        public string GetFileHash(PathDefinition definition, string virtualPath, IEnumerable virtualPathDependencies)
-        {
-            return Guid.NewGuid().ToString();
-        } 
+            var layoutVirtualPathBuilder = new LayoutVirtualPathBuilder();
+            string viewName = layoutVirtualPathBuilder.GetLayoutName(definition, virtualPath);
+            var layoutTemplateBuilder = new LayoutRenderer();
+
+            if (string.IsNullOrEmpty(viewName))
+                return null;
+
+            var viewPath = layoutTemplateBuilder.LayoutViewPath(viewName);
+            return HostingEnvironment.VirtualPathProvider.GetCacheDependency(viewPath, virtualPathDependencies, utcStart);
+        }
 
         #endregion
 
         #region Private Methods
 
-        /// <summary>
-        /// Renders the layout.
-        /// </summary>
-        /// <param name="layoutFileName">Filename of the layout.</param>
-        /// <returns>Rendered layout as HTML.</returns>
-        private string RenderLayout(string pageTemplateName)
+        private string RenderLayout(string pageTemplateName, bool placeholdersOnly)
         {
             var layoutTemplateBuilder = new LayoutRenderer();
 
-            return layoutTemplateBuilder.GetLayoutTemplate(pageTemplateName);
-        } 
+            return layoutTemplateBuilder.GetLayoutTemplate(pageTemplateName, placeholdersOnly);
+        }
 
         #endregion
 
-        #region Constants
+        #region Private fields and constants
 
         /// <summary>
         /// The resolver path.
         /// </summary>
         public const string ResolverPath = "SfLayouts/";
+
+        /// <summary>
+        /// The virtual path builder instance
+        /// </summary>
+        private VirtualPathBuilder virtualPathBuilder = new VirtualPathBuilder();
 
         #endregion
     }

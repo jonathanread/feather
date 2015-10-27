@@ -1,13 +1,13 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
 using System.Web;
 using System.Web.Hosting;
+using System.Web.Routing;
 using Telerik.Sitefinity.Modules.Pages;
 using Telerik.Sitefinity.Pages.Model;
 using Telerik.Sitefinity.Services;
+using Telerik.Sitefinity.Versioning;
 using Telerik.Sitefinity.Web;
 
 namespace Telerik.Sitefinity.Frontend.Resources
@@ -26,7 +26,7 @@ namespace Telerik.Sitefinity.Frontend.Resources
         public string GetCurrentPackage()
         {
             string packageName;
-            HttpContextBase context = SystemManager.CurrentHttpContext;
+            var context = SystemManager.CurrentHttpContext;
 
             if (context == null)
                 return null;
@@ -45,67 +45,6 @@ namespace Telerik.Sitefinity.Frontend.Resources
         }
 
         /// <summary>
-        /// Gets the package from the page template or from the Current PageSiteNode.
-        /// </summary>
-        /// <returns></returns>
-        public string GetPackageFromPageInfo()
-        {
-            string packageName;
-            var context = SystemManager.CurrentHttpContext;
-
-            if (context.Items.Contains("IsTemplate") &&
-                (bool)context.Items["IsTemplate"])
-            {
-                var keys = context.Request.RequestContext.RouteData.Values["Params"] as string[];
-                var templateId = keys != null && keys.Length > 0 ? keys[0] : null;
-                packageName = this.GetPackageFromTemplateId(templateId);
-            }
-            else
-            {
-                var currentNode = SiteMapBase.GetActualCurrentNode();
-                packageName = currentNode != null ? this.GetPackageFromNodeId(currentNode.Id.ToString()) : null;
-            }
-            return packageName;
-        }
-
-        /// <summary>
-        /// Gets the package from context parameters collection.
-        /// </summary>
-        /// <returns></returns>
-        public string GetPackageFromContext()
-        {
-            string packageName = null;
-            if (SystemManager.CurrentHttpContext.Items.Contains(PackageManager.CurrentPackageKey))
-            {
-                packageName = SystemManager.CurrentHttpContext.Items[PackageManager.CurrentPackageKey] as string;
-            }
-            return packageName;
-        }
-
-        /// <summary>
-        /// Gets the package from the URL query string.
-        /// </summary>
-        /// <returns></returns>
-        public string GetPackageFromUrl()
-        {
-            string packageName = SystemManager.CurrentHttpContext.Request.QueryString["package"];
-
-            return packageName;
-        }
-
-        /// <summary>
-        /// Gets file name from title by stripping the incorrect characters.
-        /// </summary>
-        /// <param name="title">The title.</param>
-        public string StripInvalidCharacters(string title)
-        {
-            var result = System.Text.RegularExpressions.Regex.Replace(title,
-                PackageManager.FileNameStripingRegexPattern, PackageManager.FileNameInvalidCharactersSubstitute);
-
-            return result;
-        }
-
-        /// <summary>
         /// Gets the package virtual path.
         /// </summary>
         /// <param name="packageName">Name of the package.</param>
@@ -115,7 +54,7 @@ namespace Telerik.Sitefinity.Frontend.Resources
             if (packageName.IsNullOrEmpty())
                 throw new ArgumentNullException("packageName");
 
-            var path = string.Format("~/{0}/{1}", PackageManager.PackagesFolder, packageName);
+            var path = string.Format(System.Globalization.CultureInfo.InvariantCulture, "~/{0}/{1}", PackageManager.PackagesFolder, packageName);
             return path;
         }
 
@@ -136,21 +75,59 @@ namespace Telerik.Sitefinity.Frontend.Resources
         /// <param name="url">The URL.</param>
         public string EnhanceUrl(string url)
         {
-            if (url != null)
+            if (!url.IsNullOrEmpty())
             {
                 var currentPackage = this.GetCurrentPackage();
                 if (!currentPackage.IsNullOrEmpty())
                 {
-                    return UrlTransformations.AppendParam(url, PackageManager.PackageUrlParamterName, currentPackage);
+                    return UrlTransformations.AppendParam(url, PackageUrlParameterName, currentPackage);
                 }
             }
 
             return url;
         }
 
+        /// <summary>
+        /// Checks whether a given package exists.
+        /// </summary>
+        /// <param name="packageName">Name of the package.</param>
+        public bool PackageExists(string packageName)
+        {
+            var path = HostingEnvironment.MapPath(this.GetPackageVirtualPath(packageName));
+            return path != null && Directory.Exists(path);
+        }
+
         #endregion
 
         #region Private methods
+
+        /// <summary>
+        /// Gets file name from title by stripping the incorrect characters.
+        /// </summary>
+        /// <param name="title">The title.</param>
+        internal string StripInvalidCharacters(string title)
+        {
+            var result = System.Text.RegularExpressions.Regex.Replace(
+                title,
+                FileNameStripingRegexPattern,
+                FileNameInvalidCharactersSubstitute);
+
+            return result;
+        }
+
+        /// <summary>
+        /// Gets the key of the edited container.
+        /// </summary>
+        /// <param name="context">The context.</param>
+        /// <remarks>That is page template Id when editing page template or message body Id when editing Email Campaigns issue.</remarks>
+        /// <returns>The key.</returns>
+        private static string GetEditedContainerKey(HttpContextBase context)
+        {
+            var requestContext = context.Items[RouteHandler.RequestContextKey] as RequestContext ?? context.Request.RequestContext;
+            var keys = requestContext.RouteData.Values["Params"] as string[];
+
+            return (keys != null && keys.Length > 0) ? keys[0] : null;
+        }
 
         /// <summary>
         /// Gets the package from node identifier.
@@ -163,18 +140,17 @@ namespace Telerik.Sitefinity.Frontend.Resources
             if (!Guid.TryParse(nodeId, out id))
                 return null;
 
-            var pManager = PageManager.GetManager();
-            var pageNode = pManager.GetPageNode(id);
+            var pageManager = PageManager.GetManager();
+
+            var pageNode = pageManager.GetPageNode(id);
             if (SystemManager.IsDesignMode)
             {
-                var draft = pManager.GetPageDraft(pageNode.PageId);
+                var draft = pageManager.GetPageDraft(pageNode.PageId);
                 return draft.TemplateId != Guid.Empty ? this.GetPackageFromTemplateId(draft.TemplateId.ToString()) : null;
             }
-            else
-            {
-                var pageData = pageNode.GetPageData();
-                return this.GetPackageFromTemplate(pageData.Template);
-            }
+
+            var pageData = pageNode.GetPageData();
+            return this.GetPackageFromTemplate(pageData.Template);
         }
 
         /// <summary>
@@ -188,8 +164,8 @@ namespace Telerik.Sitefinity.Frontend.Resources
             if (!Guid.TryParse(templateId, out id))
                 return null;
 
-            var pManager = PageManager.GetManager();
-            var template = pManager.GetTemplate(id);
+            var pageManager = PageManager.GetManager();
+            var template = pageManager.GetTemplate(id);
 
             return this.GetPackageFromTemplate(template);
         }
@@ -204,16 +180,19 @@ namespace Telerik.Sitefinity.Frontend.Resources
             var currentTemplate = template;
             while (currentTemplate != null)
             {
-                var title = currentTemplate.Title.ToString();
-                var parts = title.Split('.');
-                if (parts.Length > 1)
+                var name = currentTemplate.Name ?? (currentTemplate.Title != null ? currentTemplate.Title.ToString() : null);
+                if (!name.IsNullOrEmpty())
                 {
-                    var expectedPackageName = this.StripInvalidCharacters(parts[0]);
-                    var path = HostingEnvironment.MapPath(this.GetPackageVirtualPath(expectedPackageName));
-                    if (Directory.Exists(path))
+                    var parts = name.Split('.');
+                    if (parts.Length > 1)
                     {
-                        SystemManager.CurrentHttpContext.Items[PackageManager.CurrentPackageKey] = expectedPackageName;
-                        return expectedPackageName;
+                        var expectedPackageName = this.StripInvalidCharacters(parts[0]);
+                        var path = HostingEnvironment.MapPath(this.GetPackageVirtualPath(expectedPackageName));
+                        if (path != null && Directory.Exists(path))
+                        {
+                            SystemManager.CurrentHttpContext.Items[PackageManager.CurrentPackageKey] = expectedPackageName;
+                            return expectedPackageName;
+                        }
                     }
                 }
 
@@ -221,6 +200,72 @@ namespace Telerik.Sitefinity.Frontend.Resources
             }
 
             return null;
+        }
+
+        /// <summary>
+        /// Gets the package from the page template or from the Current PageSiteNode.
+        /// </summary>
+        /// <returns></returns>
+        private string GetPackageFromPageInfo()
+        {
+            string packageName;
+            var context = SystemManager.CurrentHttpContext;
+
+            if (context.Items.Contains("IsTemplate") && (bool)context.Items["IsTemplate"])
+            {
+                var templateId = PackageManager.GetEditedContainerKey(context);
+                packageName = this.GetPackageFromTemplateId(templateId);
+            }
+            else if (context.Request.Path.Contains("/Sitefinity/SFNwslttrs"))
+            {
+                var pageNodeId = PackageManager.GetEditedContainerKey(context);
+                packageName = this.GetPackageFromNodeId(pageNodeId);
+            }
+            else if (context.Request.Path.Contains("/Sitefinity/Versioning"))
+            {
+                var pageNodeId = new Guid(context.Request.RequestContext.RouteData.Values["itemId"].ToString());
+                var page = PageManager.GetManager().GetPageData(pageNodeId);
+
+                packageName = this.GetPackageFromNodeId(page.NavigationNodeId.ToString());
+            }
+            else
+            {
+                var requestContext = context.Request.RequestContext;
+                var currentNode = requestContext.RouteData.DataTokens["SiteMapNode"] as PageSiteNode;
+
+                if (currentNode == null)
+                    currentNode = SiteMapBase.GetActualCurrentNode();
+
+                packageName = currentNode != null ? this.GetPackageFromNodeId(currentNode.Id.ToString()) : null;
+            }
+
+            return packageName;
+        }
+
+        /// <summary>
+        /// Gets the package from context parameters collection.
+        /// </summary>
+        /// <returns></returns>
+        private string GetPackageFromContext()
+        {
+            string packageName = null;
+            if (SystemManager.CurrentHttpContext.Items.Contains(PackageManager.CurrentPackageKey))
+            {
+                packageName = SystemManager.CurrentHttpContext.Items[PackageManager.CurrentPackageKey] as string;
+            }
+
+            return packageName;
+        }
+
+        /// <summary>
+        /// Gets the package from the URL query string.
+        /// </summary>
+        /// <returns></returns>
+        private string GetPackageFromUrl()
+        {
+            string packageName = SystemManager.CurrentHttpContext.Request.QueryString["package"];
+
+            return packageName;
         }
 
         #endregion
@@ -247,9 +292,8 @@ namespace Telerik.Sitefinity.Frontend.Resources
         /// </summary>
         public const string CurrentPackageKey = "CurrentResourcePackage";
 
-        public const string PackageUrlParamterName = "package";
+        public const string PackageUrlParameterName = "package";
 
         #endregion
-         
     }
 }

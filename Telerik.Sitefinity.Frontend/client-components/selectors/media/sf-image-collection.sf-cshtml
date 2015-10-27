@@ -1,0 +1,93 @@
+﻿<div class="Media-items" sf-infinite-scroll="$parent.loadMore()">
+
+	<div ng-repeat="item in items | filter: { IsFolder : true }" class="Media-folder" ng-click="select(item)">
+
+    <span class="Media-item-info"
+            ng-show="item.metricsAvailable"
+						sf-popover-html
+						sf-popover-placement="right"
+						sf-popover-trigger="hover"
+						sf-popover-append-to-body="true"
+						sf-popover-title="{{item.Title}}"
+						sf-popover-content="
+              {{item.LibrariesCount}}<br/>
+              {{item.ImagesCount}}
+            ">
+      i
+    </span>
+    
+		<div class="Media-file-wrapper" ng-if="item.IsFolder === true">
+			<div class="Media-file-thumb">
+
+        <div class="Media-file-thumb-holder">
+          <div><i class="icon-folder"></i></div>
+          <strong>{{item.Title}}</strong>
+        </div>
+			</div>
+
+			<div class="Media-folder-title">
+				{{item.Title}}
+			</div>
+
+			<div class="Media-item-meta">
+				{{item.ImagesCount}} <br/>
+				{{item.LibrariesCount}}
+			</div>
+		</div>
+	</div>
+
+
+	<div class="Media-items-holder">
+		<div ng-repeat="item in items | filter: { IsFolder : false }" class="Media-file" ng-click="select(item)" ng-class="{'is-selected' : isSelected(item)}" sf-scroll-if-selected>
+			<span class="Media-item-info"
+						sf-popover-html
+						sf-popover-placement="right"
+						sf-popover-trigger="hover"
+						sf-popover-append-to-body="true"
+						sf-popover-title="{{item.Title}}"
+						sf-popover-content="
+							<dl class='dl-half'>
+								<dt>@(Res.Get<ClientComponentsResources>().Library)</dt>
+								<dd>{{item.FolderTitle || item.LibraryTitle}}</dd>
+								<dt>@(Res.Get<ClientComponentsResources>().Dimensions)</dt>
+								<dd>{{item.Width + 'x' + item.Height}}</dd>
+								<dt>@(Res.Get<ClientComponentsResources>().Type)</dt>
+								<dd>{{item.Extension.toUpperCase()}}</dd>
+								<dt>@(Res.Get<ClientComponentsResources>().ModifiedOn)</dt>
+								<dd>{{item.LastModified | date : 'M/d/yyyy h:mm'}}</dd>
+							</dl>
+						">
+				i
+			</span>
+
+			<div class="Media-file-wrapper">
+
+				<div class="Media-file-thumb">
+					<div class="Media-file-thumb-holder">
+						<img ng-if="item.IsFolder === false" ng-src="{{item.ThumbnailUrl}}" src="" alt="{{item.Title}}" />
+					</div>
+				</div>
+
+				<div class="Media-item-title">
+					{{item.Title}}
+				</div>
+
+				<div class="Media-item-meta">
+					{{item.Extension.toUpperCase().replace(".", "")}}<br />
+					{{item.Width + "x" + item.Height}}<br />
+					{{item.TotalSize + "KB"}}<br />
+				</div>
+
+				<div class="Media-item-date">
+					{{item.LastModified | date : 'M/d/yyyy h:mm'}}<br />
+					@(Res.Get<ClientComponentsResources>().By) {{item.Author}}
+				</div>
+
+			</div>
+		</div>
+	</div>
+
+	<div class="text-center">
+		<sf-loading ng-show="$parent.isLoading"></sf-loading>
+	</div>
+</div>

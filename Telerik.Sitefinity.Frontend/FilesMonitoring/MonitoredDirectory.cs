@@ -1,15 +1,12 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 
 namespace Telerik.Sitefinity.Frontend.FilesMonitoring
 {
     /// <summary>
     /// This class represents DTO for working with monitored directories.
     /// </summary>
-    public class MonitoredDirectory : IEqualityComparer<MonitoredDirectory>
+    internal class MonitoredDirectory : IEqualityComparer<MonitoredDirectory>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="MonitoredDirectory"/> class.
@@ -28,7 +25,7 @@ namespace Telerik.Sitefinity.Frontend.FilesMonitoring
         /// <value>
         /// The path.
         /// </value>
-        public string Path { set; get; }
+        public string Path { get; set; }
 
         /// <summary>
         /// Gets or sets a value indicating whether the directory wraps the packages.
@@ -36,7 +33,7 @@ namespace Telerik.Sitefinity.Frontend.FilesMonitoring
         /// <value>
         ///   <c>true</c> whether it is package directory; otherwise, <c>false</c>.
         /// </value>
-        public bool IsPackage { set; get; }
+        public bool IsPackage { get; set; }
 
         /// <summary>
         /// Determines whether the specified <see cref="System.Object" }, is equal to this instance.
@@ -51,7 +48,8 @@ namespace Telerik.Sitefinity.Frontend.FilesMonitoring
             {
                 return false;
             }
-            return Equals(this, obj as MonitoredDirectory);
+
+            return this.Equals(this, obj as MonitoredDirectory);
         }
 
         #region IEqualityComparer Members
@@ -80,6 +78,7 @@ namespace Telerik.Sitefinity.Frontend.FilesMonitoring
         /// <exception cref="System.NotImplementedException"></exception>
         public int GetHashCode(MonitoredDirectory obj)
         {
+            /// TODO: Implement this
             throw new NotImplementedException();
         }
 

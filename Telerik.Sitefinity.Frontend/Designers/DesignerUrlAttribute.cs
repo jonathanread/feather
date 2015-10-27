@@ -1,6 +1,4 @@
 ﻿using System;
-using Telerik.Sitefinity.Frontend.Mvc.Controllers;
-using Telerik.Sitefinity.Frontend.Mvc.Infrastructure;
 
 namespace Telerik.Sitefinity.Frontend.Designers
 {
@@ -18,10 +16,10 @@ namespace Telerik.Sitefinity.Frontend.Designers
         /// <summary>
         /// Initializes a new instance of the <see cref="DesignerUrlAttribute"/> class.
         /// </summary>
-        /// <param name="designerUrl">The designer URL.</param>
-        public DesignerUrlAttribute(string designerUrl)
+        /// <param name="url">The designer URL.</param>
+        public DesignerUrlAttribute(string url)
         {
-            this.url = designerUrl;
+            this.url = url;
         }
 
         #endregion

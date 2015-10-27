@@ -1,10 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Web;
 using System.Web.Mvc;
+using System.Web.Routing;
+using System.Web.UI;
 using Telerik.Sitefinity.Frontend.Mvc.Infrastructure.Controllers;
 using Telerik.Sitefinity.Frontend.Mvc.Infrastructure.Controllers.Attributes;
 using Telerik.Sitefinity.Frontend.Mvc.Models;
 using Telerik.Sitefinity.Frontend.Mvc.StringResources;
+using Telerik.Sitefinity.Modules.Pages;
+using Telerik.Sitefinity.Pages.Model;
+using Telerik.Sitefinity.Services;
 
 namespace Telerik.Sitefinity.Frontend.Mvc.Controllers
 {
@@ -13,6 +19,7 @@ namespace Telerik.Sitefinity.Frontend.Mvc.Controllers
     /// </summary>
     [Localization(typeof(DesignerResources))]
     [RequestBackendUserAuthentication]
+    [ControllerMetadataAttribute(IsTemplatableControl = false)]
     public class DesignerController : Controller
     {
         /// <summary>
@@ -23,10 +30,15 @@ namespace Telerik.Sitefinity.Frontend.Mvc.Controllers
         /// <param name="widgetName">The name of the widget.</param>
         public virtual ActionResult Master(string widgetName)
         {
-            this.ViewBag.ControlName = widgetName;
+            this.GetHttpContext().Items[SystemManager.IsBackendRequestKey] = true;
 
-            var model = this.GetModel(widgetName);
-            return this.View(DesignerController.defaultView, model);
+            var controlId = this.Request != null ? this.Request["controlId"] ?? Guid.Empty.ToString() : Guid.Empty.ToString();
+
+            this.ViewBag.ControlName = widgetName;
+            this.ViewBag.ControlId = controlId;
+
+            var model = this.GetModel(widgetName, Guid.Parse(controlId));
+            return this.View(DesignerController.DefaultView, model);
         }
 
         /// <summary>
@@ -38,35 +50,91 @@ namespace Telerik.Sitefinity.Frontend.Mvc.Controllers
         /// <param name="viewType">Type of the view which is requested. For example Simple, Advanced</param>
         /// <returns></returns>
         /// <exception cref="System.InvalidOperationException">View cannot be found on the searched locations.</exception>
-        public virtual ActionResult View(string widgetName, string viewType)
+        public new virtual ActionResult View(string widgetName, string viewType)
         {
-            string viewName = DesignerController.designerViewTemplate.Arrange(viewType);
-            return this.PartialView(viewName);
+            this.GetHttpContext().Items[SystemManager.IsBackendRequestKey] = true;
+
+            var viewName = DesignerController.DesignerViewTemplate.Arrange(viewType);
+
+            var model = this.GetViewModel();
+
+            // Passing the DesignerModel to the view model 	 	
+            var controlIdParam = this.GetControlIdParam(); 	 	
+            if (controlIdParam.HasValue) 	 	
+            { 	 	
+                ViewBag.DesignerModel = this.GetModel(widgetName, controlIdParam.Value); 	 	
+            } 
+
+            return this.PartialView(viewName, model);
         }
 
         /// <summary>
-        /// Returns a view containing client references for scripts and styles.
+        /// Gets the HTTP context.
         /// </summary>
-        public virtual ActionResult ClientReferences()
+        /// <returns></returns>
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Design", "CA1024:UsePropertiesWhereAppropriate")]
+        protected virtual HttpContextBase GetHttpContext()
         {
-            return this.View(DesignerController.clientReferencesView);
+            return this.HttpContext;
         }
+
+        private Guid? GetControlIdParam() 	 	
+        { 	 	
+            if (this.Request == null) 	 	
+                return null; 	 	
+ 	 	
+            var controlIdParam = this.Request["controlId"]; 	 	
+            if (controlIdParam == null) 	 	
+                return null; 	 	
+ 	 	
+            Guid controlIdParamAsGuid; 	 	
+            if (!Guid.TryParse(controlIdParam.ToString(), out controlIdParamAsGuid)) 	 	
+                return null; 	 	
+ 	 	
+            return controlIdParamAsGuid; 	 	
+        } 
 
         /// <summary>
         /// Gets the model of the designer.
         /// </summary>
-        private IDesignerModel GetModel(string widgetName)
+        private IDesignerModel GetModel(string widgetName, Guid controlId)
         {
             var constructorParameters = new Dictionary<string, object> 
                         {
-                           {"views", this.GetPartialViews()}
+                           { "views", this.GetPartialViews() },
+                           { "viewLocations", this.GetPartialViewLocations() },
+                           { "widgetName", widgetName },
+                           { "controlId", controlId },
+                           { "preselectedView", this.Request != null ? this.Request["view"] : null }
                         };
 
             return ControllerModelFactory.GetModel<IDesignerModel>(typeof(DesignerController), constructorParameters);
         }
 
-        private const string defaultView = "Designer";
-        private const string designerViewTemplate = "DesignerView.{0}";
-        private const string clientReferencesView = "Designer.ClientReferences";
+        private Control GetViewModel()
+        {
+            var controlIdParam = this.GetControlIdParam();
+
+            if (!controlIdParam.HasValue)
+                return null;
+
+            var controlId = controlIdParam.Value;
+            var manager = PageManager.GetManager();
+            var viewModel = manager.LoadControl(manager.GetControl<ObjectData>(controlId));
+
+            var widgetProxy = viewModel as MvcWidgetProxy;
+            if (widgetProxy != null)
+            {
+                if (widgetProxy.Controller.RouteData == null)
+                    widgetProxy.Controller.ControllerContext = new ControllerContext(new RequestContext(this.HttpContext, new RouteData()), widgetProxy.Controller);
+
+                widgetProxy.Controller.RouteData.Values["controller"] = widgetProxy.WidgetName;
+            }
+
+            return viewModel;
+        }
+
+        private const string DefaultView = "Designer";
+        private const string DesignerViewTemplate = "DesignerView.{0}";
     }
 }

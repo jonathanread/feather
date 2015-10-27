@@ -1,0 +1,129 @@
+// Kendo Editor Widget
+// We don't have access to the markup,
+// that's why we're cascading
+
+.modal-body
+	.k-editor-widget
+		margin-right: 6px
+		background: transparent
+		border: none
+		border-collapse: collapse
+		&:last-child
+			margin-right: 0
+
+		.k-editor-toolbar-wrap
+			position: relative
+			padding-left: 0
+
+		.k-editor-toolbar
+			position: relative
+			margin: -23px 0 0
+			padding: 0 110px 0 20px
+			min-height: 50px
+			background: #f2f2f2
+
+			&.sf-toolbar-short
+				position: absolute
+				top: 0
+				left: 0
+				right: 0
+				background: transparent
+				z-index: 10
+
+			&.sf-toolbar-full
+				li
+					opacity: 0.4
+
+				> li:last-child,
+				> li:nth-last-child(2)
+					position: static
+
+			> li:last-child,
+			> li:nth-last-child(2)
+				position: absolute
+
+			> li:last-child
+				top: 10px
+				right: 20px
+
+			> li:nth-last-child(2)
+				top: 0
+				right: 65px
+
+			.k-tool-group
+				.custom-tool
+					color: #797979
+
+					&:hover
+						color: #000
+
+					.glyphicon
+						padding-top: 11px
+
+					&.btn
+						margin-top: 1px
+						margin-right: -12px
+
+		.k-editable-area
+			vertical-align: top
+			border: none
+			padding: 0
+
+			iframe,
+			textarea.html
+				display: block
+				margin: 0 auto
+				padding: 0
+				min-height: 347px
+				max-width: 900px
+
+			textarea.html
+				padding: 20px
+				box-sizing: border-box
+
+		.k-tool
+			transition: 0.2s
+			&:hover
+				background: #ddd
+				.k-tool-icon
+					opacity: 1
+
+		.k-state-selected,
+		.k-tool.k-state-active
+				background: #ddd
+
+
+.kendo-content-block
+	display: block
+	margin: 3px -20px -20px
+
+.modal-full-screen
+	width: 100% !important
+	margin: 0 !important
+	position: fixed
+	top: 0
+	right: 0
+	bottom: 0
+	left: 0
+
+	#viewsPlaceholder,
+	.modal-content,
+	.modal-body,
+	.kendo-content-block
+		display: block
+		height: 100%
+
+	.k-editor
+		height: 100% !important
+
+	.k-content
+		border: 1px dashed transparent
+		transition: border-color .2s ease
+		-webkit-box-sizing: border-box
+		box-sizing: border-box
+
+		&:hover
+			border: 1px dashed #999
+
+.editor-lg
+	height: 540px

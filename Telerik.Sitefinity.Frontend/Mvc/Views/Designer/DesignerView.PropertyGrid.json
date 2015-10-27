@@ -1,0 +1,7 @@
+﻿{
+  "priority": 0,
+  "hidden": false,
+  "scripts": [
+    "Mvc/Scripts/breadcrumb.js"
+  ]
+}

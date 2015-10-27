@@ -1,10 +1,9 @@
-﻿using Ninject;
-using Ninject.Parameters;
-using System;
+﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
 using System.Web.Mvc;
+using Ninject;
+using Ninject.Parameters;
 
 namespace Telerik.Sitefinity.Frontend.Mvc.Infrastructure.Controllers
 {
@@ -22,21 +21,37 @@ namespace Telerik.Sitefinity.Frontend.Mvc.Infrastructure.Controllers
         /// <returns>The model instance.</returns>
         public static T GetModel<T>(Type controllerType, IDictionary<string, object> constructorParameters = null)
         {
-            using (var kernel = new StandardKernel())
+            if (controllerType == null)
+                throw new ArgumentNullException("controllerType");
+
+            ConstructorArgument[] parameters;
+            if (constructorParameters != null && constructorParameters.Count > 0)
             {
-                var assemblies = ControllerModelFactory.GetTypeHierarchyAssemblies(controllerType);
-                kernel.Load(assemblies);
+                parameters = new ConstructorArgument[constructorParameters.Count];
 
-                var parameters = new List<ConstructorArgument>();
-                if (constructorParameters != null && constructorParameters.Any())
+                int i = 0;
+                foreach (var param in constructorParameters)
                 {
-                    foreach (var param in constructorParameters)
-                    {
-                        parameters.Add(new ConstructorArgument(param.Key, param.Value));
-                    }
+                    parameters[i] = new ConstructorArgument(param.Key, param.Value);
+                    i++;
                 }
+            }
+            else
+            {
+                parameters = new ConstructorArgument[0];
+            }
 
-                return kernel.Get<T>(parameters.ToArray());
+            if (FrontendModule.Current != null)
+            {
+                return FrontendModule.Current.DependencyResolver.Get<T>(parameters);
+            }
+            else
+            {
+                using (var kernel = new StandardKernel())
+                {
+                    kernel.Load(ControllerModelFactory.GetTypeHierarchyAssemblies(controllerType));
+                    return kernel.Get<T>(parameters);
+                }
             }
         }
 
@@ -44,7 +59,8 @@ namespace Telerik.Sitefinity.Frontend.Mvc.Infrastructure.Controllers
         {
             var result = new List<Assembly>();
             var currentType = type;
-            while (currentType != null && currentType != typeof(Controller) && currentType != typeof(Object))
+
+            while (currentType != null && currentType != typeof(Controller) && currentType != typeof(object))
             {
                 result.Add(currentType.Assembly);
                 currentType = currentType.BaseType;

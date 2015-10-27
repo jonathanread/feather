@@ -6,6 +6,7 @@ using System.Web;
 using System.Web.Hosting;
 using Telerik.Sitefinity.Abstractions;
 using Telerik.Sitefinity.Frontend.FilesMonitoring.Data;
+using Telerik.Sitefinity.Frontend.Resources;
 using Telerik.Sitefinity.Services;
 
 namespace Telerik.Sitefinity.Frontend.FilesMonitoring
@@ -13,70 +14,23 @@ namespace Telerik.Sitefinity.Frontend.FilesMonitoring
     /// <summary>
     ///  This class manages the file monitoring and is responsible to fire events on changes in the observed file structure.
     /// </summary>
-    public class FileMonitor : IFileMonitor
+    internal class FileMonitor : IFileMonitor
     {
-        #region Properties
-
-        /// <summary>
-        /// Gets the watched folders and packages.
-        /// </summary>
-        internal IList<MonitoredDirectory> WatchedFoldersAndPackages
-        {
-            get
-            {
-                if (this.watchedFoldersAndPackages == null)
-                    this.watchedFoldersAndPackages = new List<MonitoredDirectory>();
-
-                return this.watchedFoldersAndPackages;
-            }
-        }
-
-        /// <summary>
-        /// Gets the queued folders and packages.
-        /// </summary>
-        internal IList<MonitoredDirectory> QueuedFoldersAndPackages
-        {
-            get
-            {
-                if (this.queuedFoldersAndPackages == null)
-                    this.queuedFoldersAndPackages = new List<MonitoredDirectory>();
-
-                return this.queuedFoldersAndPackages;
-            }
-        }
-
-        /// <summary>
-        /// Gets the file watchers.
-        /// </summary>
-        /// <value>
-        /// The file watchers.
-        /// </value>
-        internal IDictionary<string, FileSystemWatcher> FileWatchers
-        {
-            get
-            {
-                if (this.fileWatchers == null)
-                    this.fileWatchers = new Dictionary<string, FileSystemWatcher>();
-
-                return this.fileWatchers;
-            }
-        }
-
-        #endregion
-
         #region IFileMonitor methods
 
         /// <summary>
         /// Observes the resources locations, watch for changes
         /// and take certain actions depending on the change
         /// </summary>
-        /// <param name="monitoredDirectories">The monitored directories.</param>
-        public void Start(IList<MonitoredDirectory> monitoredDirectories)
+        /// <param name="directoriesInfo">The monitored directories.</param>
+        public void Start(IList<MonitoredDirectory> directoriesInfo)
         {
             if (this.rootWatcher == null)
+            {
                 this.AddRootWatcher();
+            }
 
-            foreach (var directory in monitoredDirectories)
+            foreach (var directory in directoriesInfo)
             {
                 var direcotryPath = this.MapPath(directory.Path);
 
@@ -99,6 +53,28 @@ namespace Telerik.Sitefinity.Frontend.FilesMonitoring
             }
         }
 
+        /// <summary>
+        /// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
+        /// </summary>
+        public void Dispose()
+        {
+            if (this.fileWatchers != null)
+            {
+                foreach (var watcher in this.fileWatchers)
+                {
+                    if (watcher.Value != null)
+                    {
+                        watcher.Value.Dispose();
+                    }
+                }
+            }
+
+            if (this.rootWatcher != null)
+                this.rootWatcher.Dispose();
+
+            GC.SuppressFinalize(this);
+        }
+
         #endregion
 
         #region Protected methods
@@ -112,8 +88,9 @@ namespace Telerik.Sitefinity.Frontend.FilesMonitoring
         protected virtual void FileChanged(string filePath, FileChangeType changeType, string oldFilePath = "")
         {
             var virtualFilePath = this.ConvertToVirtualPath(filePath);
+            var oldFileVirtualPath = this.ConvertToVirtualPath(oldFilePath);
 
-            var watchedDirInfo = this.WatchedFoldersAndPackages.FirstOrDefault(dirInfo => virtualFilePath.StartsWith(dirInfo.Path, StringComparison.InvariantCultureIgnoreCase));
+            var watchedDirInfo = this.WatchedFoldersAndPackages.FirstOrDefault(dirInfo => virtualFilePath.StartsWith(dirInfo.Path, StringComparison.Ordinal));
 
             if (watchedDirInfo == null)
                 return;
@@ -131,13 +108,13 @@ namespace Telerik.Sitefinity.Frontend.FilesMonitoring
 
             string resourceFolder = resourceDirectoryTree[resourceDirectoryTree.Length - 2];
 
-            var fileName = virtualFilePath.Replace(resourceDirecotryPath, "");
+            var fileName = virtualFilePath.Replace(resourceDirecotryPath, string.Empty);
 
             SystemManager.RunWithElevatedPrivilegeDelegate elevDelegate = this.GetFileChangedDelegate(new FileChangedDelegateArguments()
             {
-                FilePath = filePath,
+                FilePath = virtualFilePath,
                 ChangeType = changeType,
-                OldFilePath = oldFilePath, 
+                OldFilePath = oldFileVirtualPath, 
                 PackageName = packageName,
                 ResourceFolder = resourceFolder,
                 FileName = fileName
@@ -154,23 +131,24 @@ namespace Telerik.Sitefinity.Frontend.FilesMonitoring
             {
                 var fileMonitorDataManager = FileMonitorDataManager.GetManager();
 
-                //finds all records containing file paths which no longer exists
+                // finds all records containing file paths which no longer exists
                 var nonExistingFilesData = fileMonitorDataManager.GetFilesData().Select(fd => fd.FilePath).ToArray()
-                    .Where(f => !File.Exists(f));
+                    .Where(f => !HostingEnvironment.VirtualPathProvider.FileExists(f));
 
                 if (nonExistingFilesData != null && nonExistingFilesData.Any())
                 {
-                    //remove all records in the lists
+                    // remove all records in the lists
                     foreach (var filePath in nonExistingFilesData)
                     {
-                        var virtualFilePath = this.ConvertToVirtualPath(filePath);
-                        var resourceDirectoryTree = VirtualPathUtility.GetDirectory(virtualFilePath).Split('/');
+                        var resourceDirectoryTree = VirtualPathUtility.GetDirectory(filePath).Split('/');
 
                         if (resourceDirectoryTree.Length >= 2)
                         {
+                            var packageFolderIdx = Array.IndexOf(resourceDirectoryTree, PackageManager.PackagesFolder);
+                            string packageName = packageFolderIdx > 0 && packageFolderIdx + 1 < resourceDirectoryTree.Length ? resourceDirectoryTree[packageFolderIdx + 1] : string.Empty;
                             string resourceFolder = resourceDirectoryTree[resourceDirectoryTree.Length - 2];
-                            IFileManager resourceFilesManager = this.GetResourceFileManager(resourceFolder);
-                            resourceFilesManager.FileDeleted(filePath);
+                            IFileManager resourceFilesManager = this.GetResourceFileManager(resourceFolder, filePath);
+                            resourceFilesManager.FileDeleted(filePath, packageName);
                         }
                     }
                 }
@@ -183,13 +161,13 @@ namespace Telerik.Sitefinity.Frontend.FilesMonitoring
         /// Gets the resource file manager.
         /// </summary>
         /// <param name="resourceType">Type of the resource.</param>
-        /// <returns></returns>
-        protected virtual IFileManager GetResourceFileManager(string resourceFolder)
+        /// <returns>FileManager</returns>
+        protected virtual IFileManager GetResourceFileManager(string resourceFolder, string resourcePath)
         {
             IFileManager resourceFilesManager = null;
-            var resourceType = this.GetResourceType(resourceFolder);
+            var resourceType = this.GetResourceType(resourceFolder, resourcePath);
 
-            //the resource folder must follow the convention and the folder name must corresponds to a resource type
+            // the resource folder must follow the convention and the folder name must corresponds to a resource type
             if (resourceType != null)
             {
                 if (ObjectFactory.IsTypeRegistered<IFileManager>(resourceType.ToString()))
@@ -204,8 +182,11 @@ namespace Telerik.Sitefinity.Frontend.FilesMonitoring
         /// </summary>
         /// <param name="resourceFolder">The resource folder.</param>
         /// <returns></returns>
-        protected virtual ResourceType? GetResourceType(string resourceFolder)
+        protected virtual ResourceType? GetResourceType(string resourceFolder, string resourcePath)
         {
+            if (resourcePath.Contains("/GridSystem/Templates/"))
+                return ResourceType.Grid;
+
             ResourceType resourceType;
             if (Enum.TryParse<ResourceType>(resourceFolder, true, out resourceType))
                 return resourceType;
@@ -226,10 +207,10 @@ namespace Telerik.Sitefinity.Frontend.FilesMonitoring
         /// Maps the virtual path to physical path.
         /// </summary>
         /// <param name="virtualPath">The virtual Path.</param>
-        /// <returns></returns>
+        /// <returns>The physical path on the server specified by virtualPath.</returns>
         protected virtual string MapPath(string virtualPath)
         {
-            return HostingEnvironment.MapPath(virtualPath);
+            return FrontendManager.VirtualPathBuilder.MapPath(virtualPath);
         }
 
         #endregion
@@ -306,8 +287,9 @@ namespace Telerik.Sitefinity.Frontend.FilesMonitoring
         private string ConvertToVirtualPath(string path)
         {
             var appPhysicalPath = this.GetApplicationPhysicalPath();
-            //converting the file path to a virtual file path
-            if (appPhysicalPath != null)
+
+            // converting the file path to a virtual file path
+            if (!appPhysicalPath.IsNullOrEmpty() && !path.IsNullOrEmpty())
                 path = path.Substring(appPhysicalPath.Length - 1);
 
             var virtualFilePath = path.Replace('\\', '/').Insert(0, "~");
@@ -325,8 +307,15 @@ namespace Telerik.Sitefinity.Frontend.FilesMonitoring
 
             foreach (var file in files)
             {
-                var filePath = file.FullName;
-                this.FileChanged(filePath, FileChangeType.Created);
+                try
+                {
+                    var filePath = file.FullName;
+                    this.FileChanged(filePath, FileChangeType.Created);
+                }
+                catch (IOException ex)
+                {
+                    Log.Write(string.Format(System.Globalization.CultureInfo.InvariantCulture, "Exception occurred while processing the file named {0}, details: {1}", file.Name, ex));
+                }
             }
         }
 
@@ -421,7 +410,7 @@ namespace Telerik.Sitefinity.Frontend.FilesMonitoring
         {
             var virtualFilePath = this.ConvertToVirtualPath(directoryPath);
 
-            var queuedDirInfo = this.WatchedFoldersAndPackages.FirstOrDefault(dirInfo => dirInfo.Path.StartsWith(virtualFilePath, StringComparison.InvariantCultureIgnoreCase));
+            var queuedDirInfo = this.WatchedFoldersAndPackages.FirstOrDefault(dirInfo => dirInfo.Path.StartsWith(virtualFilePath, StringComparison.OrdinalIgnoreCase));
 
             if (queuedDirInfo == null)
                 return;           
@@ -444,7 +433,7 @@ namespace Telerik.Sitefinity.Frontend.FilesMonitoring
         {
             var virtualFilePath = this.ConvertToVirtualPath(directoryPath);
 
-            var queuedDirInfo = this.QueuedFoldersAndPackages.FirstOrDefault(dirInfo => dirInfo.Path.StartsWith(virtualFilePath, StringComparison.InvariantCultureIgnoreCase));
+            var queuedDirInfo = this.QueuedFoldersAndPackages.FirstOrDefault(dirInfo => dirInfo.Path.StartsWith(virtualFilePath, StringComparison.OrdinalIgnoreCase));
 
             if (queuedDirInfo == null)
                 return;
@@ -460,13 +449,13 @@ namespace Telerik.Sitefinity.Frontend.FilesMonitoring
         /// Gets the file changed delegate. It will call the appropriate methods of <see cref="IFileManager"/> when the file structure has changed. 
         /// </summary>
         /// <param name="args">The arguments.</param>
-        /// <returns></returns>
+        /// <returns>RunWithElevatedPrivilegeDelegate</returns>
         private SystemManager.RunWithElevatedPrivilegeDelegate GetFileChangedDelegate(FileChangedDelegateArguments args)
         {
             return (p) =>
             {
-                //get the resource file manager depending on its type
-                IFileManager resourceFilesManager = this.GetResourceFileManager(args.ResourceFolder);
+                // get the resource file manager depending on its type
+                IFileManager resourceFilesManager = this.GetResourceFileManager(args.ResourceFolder, args.FilePath);
 
                 if (resourceFilesManager != null)
                 {
@@ -477,15 +466,17 @@ namespace Telerik.Sitefinity.Frontend.FilesMonitoring
                                 resourceFilesManager.FileAdded(args.FileName, args.FilePath, args.PackageName);
                                 break;
                             }
+
                         case FileChangeType.Deleted:
                             {
-                                resourceFilesManager.FileDeleted(args.FilePath);
+                                resourceFilesManager.FileDeleted(args.FilePath, args.PackageName);
                                 break;
                             }
+
                         case FileChangeType.Renamed:
                             {
-                                var oldVirtualFilePath = args.OldFilePath.Substring(this.GetApplicationPhysicalPath().Length - 1).Replace('\\', '/');
-                                var oldFileName = VirtualPathUtility.GetFileName(oldVirtualFilePath);
+                                var fileNameStartIndex = args.OldFilePath.LastIndexOf("/", StringComparison.OrdinalIgnoreCase) + 1;
+                                var oldFileName = args.OldFilePath.Substring(fileNameStartIndex);
                                 resourceFilesManager.FileRenamed(args.FileName, oldFileName, args.FilePath, args.OldFilePath, args.PackageName);
                                 break;
                             }
@@ -505,6 +496,55 @@ namespace Telerik.Sitefinity.Frontend.FilesMonitoring
 
         #endregion
 
+        #region Properties
+
+        /// <summary>
+        /// Gets the watched folders and packages.
+        /// </summary>
+        internal IList<MonitoredDirectory> WatchedFoldersAndPackages
+        {
+            get
+            {
+                if (this.watchedFoldersAndPackages == null)
+                    this.watchedFoldersAndPackages = new List<MonitoredDirectory>();
+
+                return this.watchedFoldersAndPackages;
+            }
+        }
+
+        /// <summary>
+        /// Gets the queued folders and packages.
+        /// </summary>
+        internal IList<MonitoredDirectory> QueuedFoldersAndPackages
+        {
+            get
+            {
+                if (this.queuedFoldersAndPackages == null)
+                    this.queuedFoldersAndPackages = new List<MonitoredDirectory>();
+
+                return this.queuedFoldersAndPackages;
+            }
+        }
+
+        /// <summary>
+        /// Gets the file watchers.
+        /// </summary>
+        /// <value>
+        /// The file watchers.
+        /// </value>
+        internal IDictionary<string, FileSystemWatcher> FileWatchers
+        {
+            get
+            {
+                if (this.fileWatchers == null)
+                    this.fileWatchers = new Dictionary<string, FileSystemWatcher>();
+
+                return this.fileWatchers;
+            }
+        }
+
+        #endregion
+
         #region Private classes
 
         /// <summary>
@@ -513,10 +553,15 @@ namespace Telerik.Sitefinity.Frontend.FilesMonitoring
         private class FileChangedDelegateArguments
         {
             public string FilePath { get; set; }
+
             public FileChangeType ChangeType { get; set; }
+
             public string OldFilePath { get; set; }
+
             public string PackageName { get; set; }
+
             public string ResourceFolder { get; set; }
+
             public string FileName { get; set; }
         }
 

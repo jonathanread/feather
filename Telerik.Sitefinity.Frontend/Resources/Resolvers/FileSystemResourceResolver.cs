@@ -1,11 +1,12 @@
 ﻿using System;
-using System.Linq;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Web;
 using System.Web.Caching;
 using System.Web.Hosting;
+
 using Telerik.Sitefinity.Abstractions.VirtualPath;
 
 namespace Telerik.Sitefinity.Frontend.Resources.Resolvers
@@ -13,7 +14,7 @@ namespace Telerik.Sitefinity.Frontend.Resources.Resolvers
     /// <summary>
     /// This class implements a resource resolver node that gets resources from the file system.
     /// </summary>
-    public class FileSystemResourceResolver : ResourceResolverNode
+    internal class FileSystemResourceResolver : ResourceResolverNode
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="FileSystemResourceResolver"/> class.
@@ -22,7 +23,6 @@ namespace Telerik.Sitefinity.Frontend.Resources.Resolvers
         public FileSystemResourceResolver() :
             this(() => "~/")
         {
-
         }
 
         /// <summary>
@@ -46,19 +46,19 @@ namespace Telerik.Sitefinity.Frontend.Resources.Resolvers
 
             var dir = Path.GetDirectoryName(fn);
 
-            //We can't monitor file changes on non-existing directories.
+            // We can't monitor file changes on non-existing directories.
             if (Directory.Exists(dir))
             {
                 return new CacheDependency(fn, utcStart);
             }
-            else
+
+            do
             {
-                do
-                {
-                    dir = Path.GetDirectoryName(dir);
-                } while (!dir.IsNullOrEmpty() && !Directory.Exists(dir));
-                return new CacheDependency(dir, utcStart);
-            }
+                dir = Path.GetDirectoryName(dir);
+            } 
+            while (!dir.IsNullOrEmpty() && !Directory.Exists(dir));
+
+            return new CacheDependency(dir, utcStart);
         }
 
         /// <inheritdoc />
@@ -79,10 +79,12 @@ namespace Telerik.Sitefinity.Frontend.Resources.Resolvers
         {
             var mappedPath = this.GetFileName(definition, path);
             if (mappedPath != null && Directory.Exists(mappedPath))
+            {
                 return Directory.GetFiles(mappedPath)
-                    .Select(f => f.Replace(mappedPath, path));
-            else
-                return null;
+                                .Select(f => f.Replace(mappedPath, path));
+            }
+
+            return null;
         }
 
         /// <summary>
@@ -99,12 +101,13 @@ namespace Telerik.Sitefinity.Frontend.Resources.Resolvers
             var vp = VirtualPathUtility.ToAppRelative(virtualPath);
             var definitionVp = VirtualPathUtility.AppendTrailingSlash(VirtualPathUtility.ToAppRelative(definition.VirtualPath));
 
-            if (!vp.StartsWith(definitionVp))
+            if (!vp.StartsWith(definitionVp, StringComparison.OrdinalIgnoreCase))
                 return null;
 
             var relativePath = vp.Substring(definitionVp.Length).Replace('/', '\\');
 
             var mappedPath = Path.Combine(HostingEnvironment.MapPath(rootPath), relativePath);
+
             return mappedPath;
         }
 
